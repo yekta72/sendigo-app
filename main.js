@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, ipcMain, Menu, Tray, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, session, ipcMain, Menu, Tray, nativeImage, dialog, shell } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 
@@ -401,6 +401,9 @@ app.whenReady().then(() => {
 
 // ── Uygulama versiyonu ──
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+// ── Dış bağlantıyı varsayılan tarayıcıda aç ──
+ipcMain.on('open-external', (_event, url) => { shell.openExternal(url); });
 
 // ── Güncellemeyi şimdi yükle ve yeniden başlat ──
 ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());

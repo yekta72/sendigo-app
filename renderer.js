@@ -56,6 +56,31 @@ function hideLicenseGate() {
   if (gate) gate.style.display = 'none';
 }
 
+function updatePlanBadge(plan) {
+  const row        = document.getElementById('plan-badge-row');
+  const label      = document.getElementById('plan-badge-label');
+  const upgradeBtn = document.getElementById('plan-upgrade-btn');
+  if (!row || !label) return;
+
+  const planNames = {
+    trial:    '⏳ Deneme',
+    starter:  '⭐ Starter',
+    pro:      '🚀 Pro',
+    business: '💼 Business',
+    owner:    '👑 Owner',
+  };
+  label.textContent = planNames[plan] || plan;
+  row.style.display = 'flex';
+
+  // Business ve Owner planında "Yükselt" butonu gizli
+  const hiddenPlans = ['business', 'owner'];
+  upgradeBtn.style.display = hiddenPlans.includes(plan) ? 'none' : 'inline-block';
+}
+
+window.openUpgradePage = function() {
+  ipcRenderer.send('open-external', 'https://sendigo.pro/#pricing');
+};
+
 window.submitLicense = async function() {
   const input = document.getElementById('license-input');
   const btn   = document.getElementById('license-btn');
@@ -78,6 +103,7 @@ window.submitLicense = async function() {
     info.textContent = result.info;
     info.style.display = 'block';
     btn.textContent = '✓ Giriş yapılıyor…';
+    updatePlanBadge(result.plan);
     setTimeout(() => hideLicenseGate(), 1000);
   } else {
     err.textContent = result.reason;
@@ -100,6 +126,8 @@ async function checkLicenseOnStartup() {
     const inp = document.getElementById('license-input');
     if (err) { err.textContent = result.reason; err.style.display = 'block'; }
     if (inp)   inp.value = saved;
+  } else {
+    updatePlanBadge(result.plan);
   }
   // valid ise gate zaten gizli, devam et
 }
