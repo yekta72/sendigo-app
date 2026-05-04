@@ -159,10 +159,12 @@ function updateSidebarUser(plan, email, licenseKey, expiresAt) {
     if (expiresAt && plan !== 'owner') {
       const d = new Date(expiresAt);
       const diff = Math.ceil((d - Date.now()) / 86400000);
-      if (diff > 0) expiryEl.textContent = `⏱ ${diff} gün kaldı (${d.toLocaleDateString('tr-TR')})`;
-      else          expiryEl.textContent = '⚠️ Lisans süresi doldu';
+      if (diff > 0) expiryEl.textContent = `${d.toLocaleDateString('tr-TR')} (${diff} gün kaldı)`;
+      else          expiryEl.textContent = '⚠️ Süresi doldu';
+    } else if (plan === 'owner') {
+      expiryEl.textContent = 'Sınırsız';
     } else {
-      expiryEl.textContent = '';
+      expiryEl.textContent = '—';
     }
   }
 }
@@ -190,6 +192,9 @@ window.submitLicense = async function() {
 
   if (result.valid) {
     localStorage.setItem(LS_LICENSE_KEY, key);
+    if (!localStorage.getItem('sendigo_activated_at')) {
+      localStorage.setItem('sendigo_activated_at', new Date().toISOString());
+    }
     info.textContent = result.info;
     info.style.display = 'block';
     btn.textContent = '✓ Giriş yapılıyor…';
@@ -244,7 +249,7 @@ let darkTheme        = true;
 let typingSpeed      = 3;   // 1=Çok Yavaş  2=Yavaş  3=Normal  4=Hızlı  5=Çok Hızlı
 
 // Güvenlik ayarları
-let securitySettings = { settleCooldown: true, addCooldown: true };
+let securitySettings = { settleCooldown: true, addCooldown: true, skipHistory: true, nightMode: true, innerWarm: true };
 
 // Sidebar canlı aktivite logu
 let slogOpen = false;
@@ -415,18 +420,18 @@ const AI_PROVIDER_KEY  = 'wa_ai_provider';
 // Her seferinde farklı bir hal-hatır sorusu gönderilir.
 // Müşteri cevap verirse hazır metin gönderilir.
 const GREETING_POOL = [
-  'Selam! Nasılsın? 😊',
+  'Selam! Nasılsın?',
   'Merhaba, iyi misin?',
-  'Selam, umarım iyisindir! 👋',
+  'Selam, umarım iyisindir.',
   'Hey! Nasıl gidiyor?',
   'Merhaba! Günün nasıl geçiyor?',
   'Selam, her şey yolunda mı?',
   'Merhaba, nasılsın bugün?',
-  'Hey, iyi misin inşallah? 😊',
+  'Hey, iyi misin inşallah?',
   'Selamlar! Keyifler nasıl?',
-  'Merhaba! Umarım güzel bir günündür 🌟',
+  'Merhaba! Umarım güzel bir günündür.',
   'Selam! Görüşmemiz üzerinden uzun zaman geçti, nasılsın?',
-  'Merhaba, her şey nasıl? 😄',
+  'Merhaba, her şey nasıl gidiyor?',
 ];
 
 // ── Yemleme (Lure) havuzu — merak uyandıran, cevap almayı garantilemek için tasarlanmış mesajlar ──
@@ -533,10 +538,10 @@ Kurallar:
 - Her mesaj kısa olsun (1 cümle, max 12 kelime)
 - Doğal ve samimi olsun — sanki gerçek bir insandan gelen mesaj gibi
 - Hepsi birbirinden farklı kelime ve yapıda olsun
-- Emoji kullanabilirsin ama abartma (0-1 emoji per mesaj)
+- Emoji KULLANMA
 - Sadece JSON dizisi döndür, başka hiçbir şey ekleme
 
-Örnek format: ["Selam, nasılsın?", "Merhaba! Umarım güzel bir gündür 😊", ...]`;
+Örnek format: ["Selam, nasılsın?", "Merhaba, umarım güzel bir gündür.", ...]`;
 
   try {
     const ipcChannel = provider === 'anthropic' ? 'anthropic-generate' : 'openai-generate';
@@ -563,22 +568,22 @@ Kurallar:
 // Doğal sohbet zincirleri — her dizi bir konuşma akışı: [A→B, B→A, A→B, ...]
 // Güçlendirme modunda çiftler bu konuşma ipliklerinden sırayla ilerlemiş gibi mesajlaşır.
 const WARM_THREADS = [
-  ['Naber? 😊',               'İyiyim ya, sen?',           'Ben de iyiyim 👍',            'Ne güzel, görüşürüz!'],
-  ['Selam, nasılsın?',        'Teşekkürler, iyiyim 😊',    'Çok iyi, iyi günler!',        'Sana da!'],
-  ['Müsait misin biraz?',     'Evet niye?',                'Bir şey soracaktım.',         'Söyle tabii?',         'Hallettim aslında 😅',  'Tamam iyi günler!'],
-  ['Yarın uygun musun?',      'Evet olur, saat kaçta?',    'Saat 3 olur mu?',             'Olur, tamam 👍'],
+  ['Naber?',                  'İyiyim ya, sen?',           'Ben de iyiyim.',              'Ne güzel, görüşürüz!'],
+  ['Selam, nasılsın?',        'Teşekkürler, iyiyim.',      'Çok iyi, iyi günler!',        'Sana da!'],
+  ['Müsait misin biraz?',     'Evet niye?',                'Bir şey soracaktım.',         'Söyle tabii?',         'Hallettim aslında.',    'Tamam iyi günler!'],
+  ['Yarın uygun musun?',      'Evet olur, saat kaçta?',    'Saat 3 olur mu?',             'Olur, tamam.'],
   ['Gönderdiniz mi?',         'Evet az önce gönderdim.',   'Harika, aldım teşekkürler.',  'Rica ederim!'],
-  ['Kontrol ettin mi?',       'Evet baktım, sorun yok.',   'Süper, teşekkürler.',         'Ne demek 😊'],
+  ['Kontrol ettin mi?',       'Evet baktım, sorun yok.',   'Süper, teşekkürler.',         'Ne demek.'],
   ['Dosyayı aldın mı?',       'Aldım evet, sağ ol.',       'İyi çalışmalar!',             'Sana da!'],
   ['Haberin var mıydı?',      'Bilmiyordum, şimdi öğrendim.', 'Hmm, iyi bilgi.',          'Evet tam öyle!'],
-  ['Gelecek misin?',          'Gelmeye çalışırım.',        'Tamam, bekliyoruz seni.',     'Olur görüşürüz 👋'],
+  ['Gelecek misin?',          'Gelmeye çalışırım.',        'Tamam, bekliyoruz seni.',     'Olur görüşürüz.'],
   ['Ne zaman dönebilirsin?',  'Yarın sabah dönebilirim.',  'Tamam, beklerim.',            'Görüşürüz o zaman!'],
   ['Bir bakar mısın?',        'Tabii, hemen bakıyorum.',   'Teşekkürler.',                'Bir şey değil!'],
-  ['Hallettik mi?',           'Evet, tamam hallettik 👍',  'Süper olmuş 🎉',              'Gerçekten mi? 😄'],
+  ['Hallettik mi?',           'Evet, tamam hallettik.',    'Süper olmuş.',                'Gerçekten mi?'],
   ['İyi misin?',              'İyiyim evet, sen?',         'Ben de iyiyim, sağ ol.',      'Harika!'],
   ['Biraz zaman alabilir.',   'Sorun değil, bekliyorum.',  'İyi oldu.',                   'Peki görüşürüz!'],
-  ['Haberdar ederim.',        'Tamam, bekliyorum.',        'Kısa sürede döneceğim.',      'Olur 👍'],
-  ['Merak etme, hallolur.',   'Güveniyorum sana 😊',       'Bir sorun çıkarsa söylerim.',  'Tamam teşekkürler!'],
+  ['Haberdar ederim.',        'Tamam, bekliyorum.',        'Kısa sürede döneceğim.',      'Olur.'],
+  ['Merak etme, hallolur.',   'Güveniyorum sana.',         'Bir sorun çıkarsa söylerim.',  'Tamam teşekkürler!'],
 ];
 const WARM_EXCHANGES    = WARM_THREADS;  // geriye dönük uyumluluk
 const WARMING_MESSAGES  = WARM_THREADS.flat();
@@ -693,7 +698,7 @@ async function sleepWarm(ms) {
 // ══════════════════════════════════════════════════════════════════════════
 // Hesap ekleme cooldown'u: her eklemede 8–15 dk arası rastgele seçilir
 // Sabit süre yerine değişken süre kullanmak daha organik görünür
-const ACCOUNT_SETTLE_MS = 20 * 60 * 1000;  // Giriş sonrası 20 dk yerleşme süresi (QR tarama → kampanya arası)
+const ACCOUNT_SETTLE_MS = 30 * 60 * 1000;  // Giriş sonrası 30 dk yerleşme süresi (QR tarama → kampanya arası)
 const ADD_CD_MIN_MS     = 8  * 60 * 1000;  //  8 dk
 const ADD_CD_MAX_MS     = 15 * 60 * 1000;  // 15 dk
 
@@ -718,6 +723,106 @@ function fmtMs(ms) {
 function randomInterval(min, max) {
   // Float dakika döndür — tam dakika sınırlarında kalmasın (timing analizi önlemi)
   return min + Math.random() * (max - min);
+}
+
+// ── Gaussian (normal) dağılımlı gecikme — insan davranışını taklit eder ──
+// Uniform random yerine ortalama etrafında yoğunlaşan dağılım kullanır.
+function gaussianInterval(min, max) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  const std = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  const mid   = (min + max) / 2;
+  const sigma = (max - min) / 4; // değerlerin %95'i [min,max] içinde kalır
+  return Math.min(max, Math.max(min, mid + std * sigma));
+}
+
+// ── Günlük gönderilen mesaj hash takibi — tekrar göndermeyi önler ──
+let todaySentMsgs = {}; // { accountId: Set<string> }
+(function loadTodaySentMsgs() {
+  const raw = localStorage.getItem(`wa_sent_msgs_${todayKey()}`);
+  if (!raw) return;
+  try {
+    const obj = JSON.parse(raw);
+    Object.keys(obj).forEach(id => { todaySentMsgs[id] = new Set(obj[id]); });
+  } catch {}
+})();
+function hasSentMsgToday(accountId, msg) {
+  return !!(todaySentMsgs[accountId]?.has(msg));
+}
+function recordSentMsg(accountId, msg) {
+  if (!todaySentMsgs[accountId]) todaySentMsgs[accountId] = new Set();
+  todaySentMsgs[accountId].add(msg);
+  // Persist (Set → Array)
+  const obj = {};
+  Object.keys(todaySentMsgs).forEach(id => { obj[id] = [...todaySentMsgs[id]]; });
+  localStorage.setItem(`wa_sent_msgs_${todayKey()}`, JSON.stringify(obj));
+  // Eski günlerin verisini temizle
+  for (let i = 1; i <= 7; i++) {
+    const old = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    localStorage.removeItem(`wa_sent_msgs_${old}`);
+  }
+}
+
+// ── Opt-out anahtar kelime tespiti — sessiz kara liste ────────────────────
+const OPT_OUT_KEYWORDS = [
+  'ilgilenmiyorum','ilgilenmiy','istemiyorum','istemiy','hayır teşekkür','hayir tesekkur',
+  'hayır tşk','hayır tsk','dur lütfen','durdur','durdurun','listeden çıkar','listeden cikar',
+  'gönderme','gonderme','mesaj gönderme','mesaj atma','stop','not interested','no thanks',
+  'engelle','sileceksiniz','şikayet','sikayet','spam'
+];
+// Açık sohbetteki son gelen mesajları tarayıp opt-out kelimesi var mı kontrol eder
+async function checkOptOutInChat(wv) {
+  try {
+    const text = await safeExecJS(wv, `(function(){
+      try {
+        const inMsgs = document.querySelectorAll(
+          '.message-in .selectable-text, .message-in [data-testid="msg-container"] span'
+        );
+        const recent = Array.from(inMsgs).slice(-5)
+          .map(el => (el.innerText || el.textContent || '').trim())
+          .filter(Boolean).join(' ');
+        return recent.toLowerCase();
+      } catch { return ''; }
+    })()`, 5000);
+    if (!text) return false;
+    return OPT_OUT_KEYWORDS.some(kw => text.includes(kw));
+  } catch { return false; }
+}
+
+// ── Mesaj uzunluğu varyasyonu — parmak izi oluşmasın ──
+function varyMessageLength(msg) {
+  const r = Math.random();
+  if (r < 0.20 && !msg.endsWith('.') && !msg.endsWith('!') && !msg.endsWith('?')) return msg + '.';
+  if (r < 0.35 && msg.endsWith('.')) return msg.slice(0, -1);
+  if (r < 0.55) return msg;
+  // Doğal Türkçe önek — mesajı biraz uzatır
+  const prefixes = ['', '', '', 'Selamlar, ', 'İyi günler, '];
+  return prefixes[Math.floor(Math.random() * prefixes.length)] + msg;
+}
+
+// ── Status görüntüleme simülasyonu — doğal kullanım davranışı ──
+async function simulateStatusView(wv) {
+  try {
+    const clicked = await safeExecJS(wv, `(function(){
+      const btn = document.querySelector('[data-testid="status"]')
+               || document.querySelector('[aria-label="Status"]')
+               || document.querySelector('[title="Status"]')
+               || document.querySelector('[data-icon="status"]');
+      if (btn) { btn.click(); return true; }
+      return false;
+    })()`, 3000);
+    if (!clicked) return;
+    await sleep(randomInterval(8000, 18000)); // 8-18 sn bak
+    // Geri dön
+    await safeExecJS(wv, `(function(){
+      const b = document.querySelector('[data-testid="back"]')
+             || document.querySelector('button[aria-label="Geri"]')
+             || document.querySelector('button[aria-label="Back"]');
+      if (b) b.click();
+    })()`, 3000);
+    await sleep(1500);
+  } catch {}
 }
 
 // Hesap sağlık durumu: 'green' | 'yellow' | 'red' | 'blue' | 'gray'
@@ -1247,6 +1352,7 @@ async function doPresenceActivity(wv, accountId) {
   if (!wv || !document.getElementById(`wv_${accountId}`)) return;
   if (campaignRunning[accountId]) return; // Kampanya çalışırken dokunma
   if (warmingRunning) return;             // Güçlendirme çalışırken dokunma
+  if (loggedOutAccounts.has(accountId)) return;  // QR ekranındayken dokunma
 
   const roll = Math.random();
   try {
@@ -1320,6 +1426,7 @@ async function doPresenceActivity(wv, accountId) {
 // Bir sonraki presence aktivitesini rastgele aralıkta planla
 // ── Gece sessiz modu: 23:00–07:30 arası aktivite yok ────────────────────
 function isNightMode() {
+  if (securitySettings.nightMode === false) return false;
   const h = new Date().getHours();
   return h >= 23 || h < 7;  // gece 23:00 – sabah 07:00
 }
@@ -1427,8 +1534,8 @@ function schedulePresence(wv, accountId) {
     presenceTimers[accountId] = setTimeout(() => schedulePresence(wv, accountId), wakeMs);
     return;
   }
-  // Gündüz: 3–12 dakika aralıklı aktivite (eskiden 8–22 dk idi, çok seyrекti)
-  const delay = randomInterval(3 * 60 * 1000, 12 * 60 * 1000);
+  // Gündüz: 8–20 dakika aralıklı aktivite
+  const delay = randomInterval(8 * 60 * 1000, 20 * 60 * 1000);
   presenceTimers[accountId] = setTimeout(async () => {
     await doPresenceActivity(wv, accountId);
     schedulePresence(wv, accountId);
@@ -1438,8 +1545,8 @@ function schedulePresence(wv, accountId) {
 // Bir hesap için presence pattern'i başlat (webview yüklendikten sonra)
 function startPresencePattern(wv, accountId) {
   if (presenceTimers[accountId]) clearTimeout(presenceTimers[accountId]);
-  // Gece ise hemen sessiz moda al, gündüzse 60–120 sn sonra başla
-  const initDelay = isNightMode() ? 5000 : randomInterval(60 * 1000, 120 * 1000);
+  // Gece ise hemen sessiz moda al, gündüzse 5–10 dk sonra başla (yeni hesapların erken tespitini önler)
+  const initDelay = isNightMode() ? 5000 : randomInterval(5 * 60 * 1000, 10 * 60 * 1000);
   presenceTimers[accountId] = setTimeout(() => {
     schedulePresence(wv, accountId);
     scheduleVisibilityCycle(wv, accountId);  // visibility döngüsünü de başlat
@@ -1524,10 +1631,16 @@ function saveSessionStarted() { localStorage.setItem('wa_session_started', JSON.
 // Çıkış yapılmış hesapları kalıcı yap — restart'ta boşuna bağlanmasın
 function saveLoggedOut() { localStorage.setItem('wa_logged_out', JSON.stringify([...loggedOutAccounts])); }
 function applySecuritySettings() {
-  const settleEl = document.getElementById('sec-settle-toggle');
-  const addcdEl  = document.getElementById('sec-addcd-toggle');
-  if (settleEl) settleEl.checked = securitySettings.settleCooldown;
-  if (addcdEl)  addcdEl.checked  = securitySettings.addCooldown;
+  const settleEl     = document.getElementById('sec-settle-toggle');
+  const addcdEl      = document.getElementById('sec-addcd-toggle');
+  const skipHistEl   = document.getElementById('sec-skiphistory-toggle');
+  const nightModeEl  = document.getElementById('sec-nightmode-toggle');
+  const innerWarmEl  = document.getElementById('sec-innerwarm-toggle');
+  if (settleEl)    settleEl.checked    = securitySettings.settleCooldown;
+  if (addcdEl)     addcdEl.checked     = securitySettings.addCooldown;
+  if (skipHistEl)  skipHistEl.checked  = securitySettings.skipHistory !== false;
+  if (nightModeEl) nightModeEl.checked = securitySettings.nightMode  !== false;
+  if (innerWarmEl) innerWarmEl.checked = securitySettings.innerWarm  !== false;
 }
 function openSecurityModal() {
   applySecuritySettings();
@@ -1609,7 +1722,26 @@ function playNotificationSound() {
 // ══════════════════════════════════════════════════════════════════════════
 //  WEBVIEW
 // ══════════════════════════════════════════════════════════════════════════
-const WA_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+// Gerçekçi Chrome minor sürüm havuzu — her hesaba sabit ama farklı UA atanır
+const CHROME_UA_POOL = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.216 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.184 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.128 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.86 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.91 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.155 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.76 Safari/537.36',
+];
+// Her hesap için kararlı (sabit) UA — oturum boyunca değişmez, hesaplar arası farklıdır
+function getAccountUA(accountId) {
+  const key = `wa_ua_${accountId}`;
+  const stored = localStorage.getItem(key);
+  if (stored && CHROME_UA_POOL.includes(stored)) return stored;
+  const ua = CHROME_UA_POOL[Math.floor(Math.random() * CHROME_UA_POOL.length)];
+  localStorage.setItem(key, ua);
+  return ua;
+}
+const WA_UA = CHROME_UA_POOL[4]; // fallback
 
 function getOrCreateWebview(account) {
   let wv = document.getElementById(`wv_${account.id}`);
@@ -1618,7 +1750,7 @@ function getOrCreateWebview(account) {
     wv.id  = `wv_${account.id}`;
     // src'yi proxy uygulandıktan SONRA set et — race condition önleme
     wv.setAttribute('partition', `persist:${account.id}`);
-    wv.setAttribute('useragent', WA_UA);
+    wv.setAttribute('useragent', getAccountUA(account.id));
     wv.setAttribute('allowpopups', 'true');
     // Preload script: WhatsApp JS yüklenmeden ÖNCE fingerprint override'larını uygula
     // Paketlenmiş exe'de __dirname asar içine işaret eder; dosya extraResources'ta olur
@@ -1678,12 +1810,24 @@ function getOrCreateWebview(account) {
             showToast(`⚠️ ${account.name} oturumu kapandı — QR taratın`, 4000);
             sendSystemNotification('🔴 Oturum Kapandı', `${account.name} WhatsApp oturumu kapandı — QR kodu taratın.`);
           }
-        } else if (wasLoggedOut && qrVisible === false) {
-          // Giriş yapıldı — temizle
-          loggedOutAccounts.delete(account.id);
-          saveLoggedOut();
-          setAccountStatus(account.id, '● Aktif');
-          renderAccountsDebounced();
+        } else if (qrVisible === false) {
+          // QR yok = oturum açık
+          if (wasLoggedOut) {
+            // Az önce giriş yapıldı
+            loggedOutAccounts.delete(account.id);
+            saveLoggedOut();
+            setAccountStatus(account.id, '● Aktif');
+            renderAccountsDebounced();
+          }
+          // sessionStarted'ı burada ayarla — gerçek login sonrası settle süresi başlasın
+          if (!sessionStarted[account.id]) {
+            sessionStarted[account.id] = Date.now();
+            saveSessionStarted();
+            // Yerleşme sayacını göster
+            if (securitySettings.settleCooldown) {
+              setAccountCountdown(account.id, ACCOUNT_SETTLE_MS, '⏳ Yerleşiyor');
+            }
+          }
         }
       } catch {}
     }
@@ -1696,10 +1840,7 @@ function getOrCreateWebview(account) {
     }
 
     wv.addEventListener('did-finish-load', () => {
-      if (!sessionStarted[account.id]) {
-        sessionStarted[account.id] = Date.now();
-        saveSessionStarted(); // restart'ta kaybolmasın
-      }
+      // sessionStarted burada ayarlanmaz — gerçek login tespiti checkLoginStatus içinde yapılır
       // Sayfa yüklendi — 3 sn sonra oturum durumunu kontrol et
       setTimeout(checkLoginStatus, 3000);
       startLoginCheck();
@@ -1856,7 +1997,7 @@ function renderAccounts() {
         <div class="account-status">
           <span class="health-dot ${health}" title="${healthTip}"></span>
           <span class="account-status-text${isLoggedOut ? ' logged-out-text' : ''}">${statusTxt}</span>
-          ${pLabel ? `<span class="proxy-badge" title="Proxy: ${escHtml(pLabel)}">🌐 ${escHtml(pLabel)}</span>` : ''}
+          ${pLabel ? `<span class="proxy-badge" title="Konut IP: ${escHtml(pLabel)}">🏠 ${escHtml(pLabel)}</span>` : ''}
         </div>
         ${tagPills ? `<div class="acct-tags">${tagPills}</div>` : ''}
         <div class="acct-progress-wrap">
@@ -1865,7 +2006,7 @@ function renderAccounts() {
       </div>
       <span class="unread-badge hidden">0</span>
       <div class="item-actions">
-        <button class="icon-btn proxy-btn ${hasProxy ? 'has-proxy' : ''}" title="${hasProxy ? 'Proxy: ' + escHtml(pLabel) : 'Proxy ekle'}">🌐</button>
+        <button class="icon-btn proxy-btn ${hasProxy ? 'has-proxy' : ''}" title="${hasProxy ? 'Konut IP: ' + escHtml(pLabel) : 'Konut IP ekle'}">🏠</button>
         <button class="icon-btn rename-btn" title="Yeniden Adlandır">✏️</button>
         <button class="icon-btn danger delete-btn" title="Sil">✕</button>
       </div>`;
@@ -2461,16 +2602,9 @@ function logToSidebar(msg, cls = '') {
   // Eski satırları kırp
   while (entries.children.length > SLOG_MAX) entries.removeChild(entries.firstChild);
 
-  // Otomatik scroll — en alta (scroll container slog-body'dir)
+  // Otomatik scroll — en alta (scroll container slog-body'dir) — sadece zaten açıksa
   const slogBody = document.getElementById('slog-body');
-  if (slogBody) setTimeout(() => { slogBody.scrollTop = slogBody.scrollHeight; }, 0);
-
-  // Logu otomatik aç (ilk aktivitede)
-  if (!slogOpen) {
-    slogOpen = true;
-    document.getElementById('slog-body')    ?.classList.add('open');
-    document.getElementById('slog-chevron') ?.classList.add('open');
-  }
+  if (slogBody && slogOpen) setTimeout(() => { slogBody.scrollTop = slogBody.scrollHeight; }, 0);
 
   // Dot animasyonu: 2 sn yanıp söner, aktif işlem varsa kalır
   const dot = document.getElementById('slog-dot');
@@ -2592,7 +2726,7 @@ async function sendToNumber(wv, phone, message, useSearch = false, skipHistoryCh
   // ── Mevcut sohbet geçmişi kontrolü — kampanya modunda daha önce konuşulan atlanır ──
   // Warming modunda (skipHistoryCheck=true) bu kontrol yapılmaz — güçlendirme
   // ortakları zaten birbirleriyle konuştuğu için her zaman geçmiş olur.
-  if (!skipHistoryCheck) {
+  if (!skipHistoryCheck && securitySettings.skipHistory !== false) {
     await humanDelay(1500, 2500);
     try {
       const hasHistory = await safeExecJS(wv, `(function(){
@@ -2963,6 +3097,7 @@ async function runCampaignLoop(accountId) {
   await humanDelay(1500, 3000);
 
   const dailyLimit = account.dailyLimit || 20;  // hesap bazında — kampanya boyunca sabit
+  const totalNums = parseNumbers(globalCampaignNumbers).length; // döngü dışında önbelleğe al
 
   let sentCount   = 0;
   let failStreak  = 0;
@@ -3032,6 +3167,17 @@ async function runCampaignLoop(accountId) {
     }
     accountLastMsgFirstWord[accountId] = message.trim().split(/\s+/)[0].replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ]/g, '').toLowerCase();
 
+    // ── 2. Aynı mesajı bugün tekrar gönderme engeli ─────────────
+    let dupTry = 0;
+    while (dupTry < 4 && hasSentMsgToday(accountId, message)) {
+      message = spinMessage(template.text);
+      dupTry++;
+    }
+    // 3. Mesaj uzunluğu varyasyonu — spin yetmezse veya rastgele
+    if (dupTry >= 4 || Math.random() < 0.35) {
+      message = varyMessageLength(message);
+    }
+
     setAccountStatus(accountId, `📤 Yazıyor → ${phone}`);
     logToPanel(`[${account.name}] 📤 [${template.name}] → ${phone}`, 'log-wait');
 
@@ -3042,8 +3188,8 @@ async function runCampaignLoop(accountId) {
       logToPanel(`[${account.name}] 👋 Selam gönderiliyor → ${phone}: "${greetMsg}"`, 'log-wait');
       setAccountStatus(accountId, `👋 Selam → ${phone}`);
 
-      // Sohbeti aç (search ile, sayfa yenilemeden)
-      const greetResult = await sendToNumber(wv, phone, greetMsg, true, true);
+      // Sohbeti aç (search ile, sayfa yenilemeden) — skipHistoryCheck=false: mevcut sohbet varsa atla
+      const greetResult = await sendToNumber(wv, phone, greetMsg, true, false);
 
       if (greetResult === 'no_wa') {
         // WhatsApp yok — normal no_wa işlemi aşağıya devret
@@ -3155,9 +3301,13 @@ async function runCampaignLoop(accountId) {
       sentCount++;
       if (campaignStats[accountId]) campaignStats[accountId].sent++;
       incrementDaily(accountId);
+      recordSentMsg(accountId, message); // 2. tekrar gönderme takibi
       sentNumbersGlobal.add(phone);
       saveSentNumbers();
-      const totalNums = parseNumbers(globalCampaignNumbers).length;
+      // ── Opt-out taraması — sessiz kara liste ─────────────────
+      // Gönderim sonrası açık sohbette opt-out kelimesi var mı kontrol et
+      const optedOut = await checkOptOutInChat(wv);
+      if (optedOut) { addToBlacklist(phone); }
       logToPanel(`[${account.name}] ✅ Gönderildi — bugün: ${getDailySent(accountId)}/${dailyLimit} | kuyrukta: ${campaignQueue.length} kaldı`, 'log-sent');
       cpProgressFill.style.width = `${Math.min(100, Math.round((sentNumbersGlobal.size / Math.max(1, totalNums)) * 100))}%`;
       cpProgressText.textContent = `${sentNumbersGlobal.size}/${totalNums} işlendi — ${account.name}: ${getDailySent(accountId)}/${dailyLimit}`;
@@ -3168,7 +3318,7 @@ async function runCampaignLoop(accountId) {
 
       // ── Her N kampanya mesajında 1 iç ısınma turu ─────────────
       // Hesaplar kendi aralarında konuşarak çift yönlü aktivite oluşturur
-      if (sentCount % warmInterval === 0 && campaignRunning[accountId]) {
+      if (sentCount % warmInterval === 0 && campaignRunning[accountId] && securitySettings.innerWarm !== false) {
         await doCampaignInternalWarm(accountId, wv);
       }
     } else {
@@ -3195,6 +3345,14 @@ async function runCampaignLoop(accountId) {
       })()`, 5000).catch(() => {});
       setAccountCountdown(accountId, breakDur * 60 * 1000, '☕ Mola');
       logToPanel(`[${account.name}] ☕ ${sentCount}. mesaj — ${breakDur} dk mola`, 'log-info');
+      // 4. Status görüntüleme — molada doğal davranış
+      if (Math.random() < 0.6) {
+        await humanDelay(8000, 20000);
+        if (campaignRunning[accountId]) {
+          logToPanel(`[${account.name}] 👁 Status görüntüleniyor…`, 'log-info');
+          await simulateStatusView(wv);
+        }
+      }
       const molaCont = await sleepCancellable(breakDur * 60 * 1000, accountId);
       if (!molaCont || !campaignRunning[accountId]) break;
       await humanDelay(3000, 6000);
@@ -3202,7 +3360,8 @@ async function runCampaignLoop(accountId) {
       await humanDelay(1500, 3000);
       logToPanel(`[${account.name}] ▶️ Mola bitti, devam…`, 'log-info');
     } else {
-      const waitMs = randomInterval(minWait, maxWait) * 60 * 1000;
+      // 1. Gaussian dağılım — uniform yerine insan benzeri gecikme
+      const waitMs = gaussianInterval(minWait, maxWait) * 60 * 1000;
       setAccountCountdown(accountId, waitMs, '⏳ Bekliyor');
       logToPanel(`[${account.name}] ⏳ ${fmtMs(waitMs)} bekleniyor`, 'log-wait');
       await sleepCancellable(waitMs, accountId);
@@ -3659,6 +3818,25 @@ function openGreetPanel() {
   if (poolEl) poolEl.value = poolLines.join('\n');
   const followEl = document.getElementById('greet-followup-textarea');
   if (followEl) followEl.value = savedFollowup;
+
+  // Şablon seçici — cevap sonrası mesaj için mevcut şablonları listele
+  const tmplSel = document.getElementById('greet-followup-tmpl-select');
+  if (tmplSel) {
+    tmplSel.innerHTML = '<option value="">-- Şablondan seç --</option>';
+    globalTemplates.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.text;
+      opt.textContent = `[${t.category || 'Genel'}] ${t.name}`;
+      tmplSel.appendChild(opt);
+    });
+    tmplSel.onchange = () => {
+      if (tmplSel.value && followEl) {
+        followEl.value = tmplSel.value;
+        tmplSel.value = '';
+      }
+    };
+  }
+
   const toEl = document.getElementById('greet-timeout-min');
   if (toEl) toEl.value = savedTimeout;
   const [minI, maxI] = savedInterval.split('-');
@@ -4027,6 +4205,7 @@ async function runAiGeneration() {
   const keyInputId = aiProvider === 'anthropic' ? 'ai-gen-apikey-anthropic' : 'ai-gen-apikey-openai';
   const key     = (document.getElementById(keyInputId)?.value || '').trim();
   const base    = (document.getElementById('ai-gen-base')?.value || '').trim();
+  const style   = (document.getElementById('ai-gen-style')?.value || '').trim();
   const count   = Math.min(20, Math.max(2, parseInt(document.getElementById('ai-gen-count')?.value) || 5));
   const loading = document.getElementById('ai-gen-loading');
   const status  = document.getElementById('ai-gen-status');
@@ -4042,8 +4221,9 @@ async function runAiGeneration() {
   if (runBtn)  runBtn.disabled       = true;
 
   try {
+    const styleSection = style ? `\nYazım Yönlendirmesi:\n${style}\n` : '';
     const prompt = `Aşağıdaki WhatsApp pazarlama mesajını ${count} farklı şekilde yeniden yaz.
-
+${styleSection}
 Kurallar:
 - Her versiyon aynı anlamı taşımalı ama farklı kelimeler ve cümle yapısı kullansın
 - Mesajın dilini koru (Türkçe ise Türkçe kalsın, İngilizce ise İngilizce)
@@ -4282,9 +4462,15 @@ cpStartBtn.addEventListener('click', async () => {
   updateCampaignControls();
   renderCampaignAccountSelect();
 
-  // ── Paralel döngüler — her hesap kendi loop'unda çalışır ────────────────
-  // allSettled: bir hesap hata verse bile diğerleri çalışmaya devam eder
-  await Promise.allSettled(selectedIds.map(id => runCampaignLoop(id)));
+  // ── 5. Hesap sırasını karıştır — sıralı pattern spam tespitini tetikler ─
+  const shuffledIds = [...selectedIds].sort(() => Math.random() - 0.5);
+
+  // ── Paralel döngüler — kademeli başlangıç (her hesap 20-60 sn arayla) ──
+  await Promise.allSettled(shuffledIds.map((id, idx) => {
+    const staggerMs = idx === 0 ? 0 : Math.min(Math.round(randomInterval(60, 180) * 1000 * idx), 12 * 60 * 1000);
+    if (staggerMs === 0) return runCampaignLoop(id);
+    return sleepCancellable(staggerMs, id).then(ok => ok ? runCampaignLoop(id) : null);
+  }));
 
   globalCampaignRunning = false;
   globalCampaignPaused  = false;
@@ -4397,8 +4583,9 @@ document.addEventListener('keydown', e => {
   // Yeni paneller
   document.getElementById('greet-modal-overlay')?.classList.remove('show');
   document.getElementById('howto-modal-overlay')?.classList.remove('show');
-  document.getElementById('info-modal-overlay')?.classList.remove('show');
+  document.getElementById('antiban-modal-overlay')?.classList.remove('show');
   document.getElementById('sec-block-overlay')?.classList.remove('show');
+  document.getElementById('su-popup') && (document.getElementById('su-popup').style.display = 'none');
 });
 
 // ── Silme onay modalı ─────────────────────────────────────────────────────
@@ -4445,6 +4632,27 @@ if (secAddcdToggle) secAddcdToggle.addEventListener('change', () => {
   securitySettings.addCooldown = secAddcdToggle.checked;
   saveSecuritySettings();
   showToast(secAddcdToggle.checked ? `🛡️ Hesap ekleme cooldown'u açık` : `⚠️ Hesap ekleme cooldown'u kapalı`);
+});
+
+const secSkipHistToggle = document.getElementById('sec-skiphistory-toggle');
+if (secSkipHistToggle) secSkipHistToggle.addEventListener('change', () => {
+  securitySettings.skipHistory = secSkipHistToggle.checked;
+  saveSecuritySettings();
+  showToast(secSkipHistToggle.checked ? `🛡️ Mevcut sohbet engeli açık` : `⚠️ Mevcut sohbet engeli kapalı`);
+});
+
+const secNightModeToggle = document.getElementById('sec-nightmode-toggle');
+if (secNightModeToggle) secNightModeToggle.addEventListener('change', () => {
+  securitySettings.nightMode = secNightModeToggle.checked;
+  saveSecuritySettings();
+  showToast(secNightModeToggle.checked ? `🌙 Gece modu açık` : `⚠️ Gece modu kapalı`);
+});
+
+const secInnerWarmToggle = document.getElementById('sec-innerwarm-toggle');
+if (secInnerWarmToggle) secInnerWarmToggle.addEventListener('change', () => {
+  securitySettings.innerWarm = secInnerWarmToggle.checked;
+  saveSecuritySettings();
+  showToast(secInnerWarmToggle.checked ? `🛡️ Kampanya içi ısınma açık` : `⚠️ Kampanya içi ısınma kapalı`);
 });
 
 // ── Güçlendirme modu ──────────────────────────────────────────────────────
@@ -4519,6 +4727,43 @@ document.getElementById('warm-schedule-btn')?.addEventListener('click', () => {
   const btn = document.getElementById('warm-schedule-btn');
   if (btn) { btn.textContent = '✕ İptal'; btn.classList.add('active'); }
   showToast(`⏰ Güçlendirme ${fmtTarget}'de başlayacak`);
+});
+
+// ── Selam modu zamanlama ────────────────────────────────────────────────────
+let scheduledGreetTimer = null;
+document.getElementById('greet-schedule-btn')?.addEventListener('click', () => {
+  const timeInput = document.getElementById('greet-scheduled-time');
+  const infoEl    = document.getElementById('greet-scheduled-info');
+  if (!timeInput || !infoEl) return;
+  if (scheduledGreetTimer !== null) {
+    clearTimeout(scheduledGreetTimer);
+    scheduledGreetTimer = null;
+    timeInput.value = '';
+    infoEl.textContent = '';
+    const btn = document.getElementById('greet-schedule-btn');
+    if (btn) { btn.textContent = '⏰ Ayarla'; btn.classList.remove('active'); }
+    showToast('⏰ Zamanlı selam modu iptal edildi');
+    return;
+  }
+  const val = timeInput.value;
+  if (!val) { showToast('⚠️ Lütfen bir saat seçin'); return; }
+  const [h, m] = val.split(':').map(Number);
+  const target = new Date(); target.setHours(h, m, 0, 0);
+  if (target <= new Date()) target.setDate(target.getDate() + 1);
+  const msUntil = target - Date.now();
+  scheduledGreetTimer = setTimeout(() => {
+    scheduledGreetTimer = null;
+    infoEl.textContent = '';
+    const btn = document.getElementById('greet-schedule-btn');
+    if (btn) { btn.textContent = '⏰ Ayarla'; btn.classList.remove('active'); }
+    document.getElementById('greet-start-btn')?.click();
+    sendSystemNotification('👋 Zamanlı Selam Modu Başladı', `Saat ${val} selam modu başladı.`);
+  }, msUntil);
+  const fmtTarget = target.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  infoEl.textContent = `⏰ Selam modu ${fmtTarget}'de başlayacak`;
+  const btn = document.getElementById('greet-schedule-btn');
+  if (btn) { btn.textContent = '✕ İptal'; btn.classList.add('active'); }
+  showToast(`⏰ Selam modu ${fmtTarget}'de başlayacak`);
 });
 
 // ── Güvenlik engel popup butonları ──────────────────────────────────────────
@@ -4618,6 +4863,45 @@ makeOverlayCloseable(document.getElementById('sec-block-overlay'), closeSecurity
   });
 })();
 
+// ── Kampanya paneli genişlik resize ────────────────────────────────────────
+(function initCampaignPanelResize() {
+  const panel  = document.getElementById('campaign-panel');
+  const handle = document.getElementById('cp-resize-handle');
+  if (!panel || !handle) return;
+
+  const savedW = parseInt(localStorage.getItem('wa_cp_panel_w') || '600');
+  if (savedW >= 360 && savedW <= 900) panel.style.width = savedW + 'px';
+
+  let dragging = false, startX = 0, startW = 0;
+
+  handle.addEventListener('pointerdown', e => {
+    handle.setPointerCapture(e.pointerId);
+    dragging = true;
+    startX   = e.clientX;
+    startW   = panel.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.style.cursor     = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const newW = Math.min(900, Math.max(360, startW - (e.clientX - startX)));
+    panel.style.width = newW + 'px';
+  });
+
+  handle.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor     = '';
+    document.body.style.userSelect = '';
+    handle.style.background = 'transparent';
+    localStorage.setItem('wa_cp_panel_w', parseInt(panel.style.width));
+  });
+})();
+
 // ── Hesap arama / filtre ────────────────────────────────────────────────────
 const acctSearch = document.getElementById('acct-search');
 if (acctSearch) {
@@ -4699,12 +4983,12 @@ makeOverlayCloseable(document.getElementById('stats-modal-overlay'), closeStatsP
   makeOverlayCloseable(overlay, close);
 })();
 
-// ── İnfo / Özellik Rehberi modal ─────────────────────────────────────────
-(function initInfoModal() {
-  const overlay = document.getElementById('info-modal-overlay');
-  const openBtn = document.getElementById('nav-info-btn');
-  const closeX  = document.getElementById('info-modal-close-x');
-  const closeBtn= document.getElementById('info-modal-close');
+// ── Anti-Ban modal ───────────────────────────────────────────────────────
+(function initAntiBanModal() {
+  const overlay = document.getElementById('antiban-modal-overlay');
+  const openBtn = document.getElementById('nav-antiban-btn');
+  const closeX  = document.getElementById('antiban-modal-close-x');
+  const closeBtn= document.getElementById('antiban-modal-close');
   if (!overlay) return;
   const open  = () => overlay.classList.add('show');
   const close = () => overlay.classList.remove('show');
@@ -4712,6 +4996,157 @@ makeOverlayCloseable(document.getElementById('stats-modal-overlay'), closeStatsP
   closeX?.addEventListener('click', close);
   closeBtn?.addEventListener('click', close);
   makeOverlayCloseable(overlay, close);
+})();
+
+// ── Hesabım modal (nav-account-btn) — centered overlay ───────────────────
+(function initAccountPopup() {
+  const btn   = document.getElementById('nav-account-btn');
+  const modal = document.getElementById('su-popup');
+  if (!btn || !modal) return;
+  btn.addEventListener('click', () => {
+    // Aktivasyon tarihini güncelle
+    const startEl = document.getElementById('su-start-date');
+    if (startEl) {
+      const stored = localStorage.getItem('sendigo_activated_at');
+      startEl.textContent = stored ? new Date(stored).toLocaleDateString('tr-TR') : '—';
+    }
+    modal.style.display = 'flex';
+  });
+  // ESC ile kapat
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') modal.style.display = 'none';
+  });
+  // Overlay dışına tıklayınca kapat
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+})();
+
+// ── Website ikonu ─────────────────────────────────────────────────────────
+document.getElementById('nav-website-btn')?.addEventListener('click', () => {
+  ipcRenderer.send('open-external', 'https://sendigo.pro');
+});
+
+// ══════════════════════════════════════════════════════════════════════
+//  AI ASİSTAN PANELİ
+// ══════════════════════════════════════════════════════════════════════
+(function initAiAssistPanel() {
+  const panel    = document.getElementById('ai-assist-panel');
+  const openBtn  = document.getElementById('nav-ai-btn');
+  const closeBtn = document.getElementById('ai-assist-close');
+  const msgs     = document.getElementById('ai-assist-messages');
+  const input    = document.getElementById('ai-assist-input');
+  const sendBtn  = document.getElementById('ai-assist-send');
+  const badge    = document.getElementById('ai-assist-prov-badge');
+  const noKeyEl  = document.getElementById('ai-assist-no-key');
+  if (!panel || !openBtn) return;
+
+  let panelOpen = false;
+
+  function updateProvBadge() {
+    const prov = localStorage.getItem(AI_PROVIDER_KEY) || 'anthropic';
+    if (badge) badge.textContent = prov === 'anthropic' ? 'Anthropic' : 'OpenAI';
+    const keyId = prov === 'anthropic' ? AI_KEY_ANTHROPIC : AI_KEY_OPENAI;
+    const hasKey = !!(localStorage.getItem(keyId) || '').trim();
+    if (noKeyEl) noKeyEl.style.display = hasKey ? 'none' : 'block';
+    if (sendBtn) sendBtn.disabled = !hasKey;
+  }
+
+  function openPanel() {
+    panelOpen = true;
+    panel.classList.add('show');
+    updateProvBadge();
+    input?.focus();
+  }
+  function closePanel() {
+    panelOpen = false;
+    panel.classList.remove('show');
+  }
+
+  openBtn.addEventListener('click', () => panelOpen ? closePanel() : openPanel());
+  closeBtn?.addEventListener('click', closePanel);
+
+  // ESC kapatsın
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panelOpen) closePanel();
+  });
+
+  function addMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = `ai-msg ${role}`;
+
+    if (role === 'bot' && text !== '…') {
+      // Copy butonu
+      const copy = document.createElement('button');
+      copy.className = 'ai-copy-btn';
+      copy.title = 'Kopyala';
+      copy.textContent = '📋';
+      copy.addEventListener('click', () => {
+        navigator.clipboard.writeText(text).then(() => {
+          copy.textContent = '✓';
+          setTimeout(() => { copy.textContent = '📋'; }, 1500);
+        });
+      });
+      div.appendChild(copy);
+    }
+
+    const span = document.createElement('span');
+    span.textContent = text;
+    div.appendChild(span);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = (input?.value || '').trim();
+    if (!text) return;
+    const prov  = localStorage.getItem(AI_PROVIDER_KEY) || 'anthropic';
+    const keyId = prov === 'anthropic' ? AI_KEY_ANTHROPIC : AI_KEY_OPENAI;
+    const apiKey = (localStorage.getItem(keyId) || '').trim();
+    if (!apiKey) { updateProvBadge(); return; }
+
+    input.value = '';
+    input.style.height = '';
+    sendBtn.disabled = true;
+
+    addMessage('user', text);
+    const thinkDiv = addMessage('bot', '…');
+    thinkDiv.classList.add('thinking');
+
+    try {
+      const ipcChannel = prov === 'anthropic' ? 'anthropic-generate' : 'openai-generate';
+      const result = await ipcRenderer.invoke(ipcChannel, {
+        apiKey,
+        prompt: text,
+        maxTokens: 1024,
+        system: 'Sen yardımcı bir AI asistansın. Kullanıcı Türkçe veya İngilizce sorabilir; uygun dilde kısa ve net cevap ver.'
+      });
+      thinkDiv.remove();
+      if (result.ok) {
+        addMessage('bot', result.text || '(boş yanıt)');
+      } else {
+        addMessage('bot', `⚠️ Hata: ${result.error || 'Bilinmeyen hata'}`);
+      }
+    } catch (err) {
+      thinkDiv.remove();
+      addMessage('bot', `⚠️ ${err.message}`);
+    } finally {
+      sendBtn.disabled = false;
+      input?.focus();
+    }
+  }
+
+  sendBtn?.addEventListener('click', sendMessage);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  // Auto-resize textarea
+  input?.addEventListener('input', () => {
+    input.style.height = '';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
 })();
 
 // ── Kara liste temizle ────────────────────────────────────────────────────
@@ -4788,60 +5223,4 @@ document.getElementById('st-desktop-notif')?.addEventListener('change', e => {
   }
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-//  BAŞLATMA
-// ══════════════════════════════════════════════════════════════════════════
-loadState();
-applyTheme();
-applyOledTheme();
-applySound();
-applyTypingSpeed();
-applySecuritySettings();
-renderAccounts();
-
-// Versiyon etiketini package.json'dan çek
-ipcRenderer.invoke('get-app-version').then(v => {
-  const el = document.getElementById('app-version');
-  if (el) el.textContent = 'v' + v;
-}).catch(() => {});
-
-// ── Otomatik güncelleme bildirimleri ──
-ipcRenderer.on('update-available', () => {
-  showToast('🔄 Yeni güncelleme indiriliyor…', 4000);
-});
-ipcRenderer.on('update-downloaded', () => {
-  const toast = document.createElement('div');
-  toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-    background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;padding:14px 24px;
-    border-radius:12px;font-size:14px;font-weight:600;z-index:99999;display:flex;
-    align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);`;
-  toast.innerHTML = `<span>✅ Güncelleme hazır!</span>
-    <button onclick="ipcRenderer.invoke('install-update')" style="background:rgba(255,255,255,0.2);
-    border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
-    Şimdi Yükle</button>
-    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,0.7);
-    cursor:pointer;font-size:18px;padding:0 4px;">×</button>`;
-  document.body.appendChild(toast);
-});
-
-Promise.all(accounts.filter(a => a.proxies && a.proxies.length).map(a => applyAccountProxy(a.id))).catch(() => {});
-
-if (accounts.length > 0) {
-  // Aktif (çıkış yapmamış) hesaplar — sadece bunlar için webview aç
-  const activeAccounts = accounts.filter(a => !loggedOutAccounts.has(a.id));
-  const firstActive    = activeAccounts[0] || accounts[0]; // hepsi çıkış yaptıysa ilkini göster
-
-  switchToAccount(firstActive.id);
-
-  // Çıkış yapmamış diğer hesapları staggered yükle
-  let loadIdx = 0;
-  accounts.slice(1).forEach(a => {
-    if (loggedOutAccounts.has(a.id)) return; // çıkış yapılmış → atla
-    const delay = (++loadIdx) * 4000;
-    setTimeout(() => {
-      if (!document.getElementById('wv_' + a.id)) getOrCreateWebview(a);
-    }, delay);
-  });
-} else {
-  welcomeScreen.classList.remove('hidden');
-}
+// ═════════════════════════════════════════════════════

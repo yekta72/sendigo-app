@@ -264,7 +264,7 @@ app.whenReady().then(() => {
           Object.defineProperty(navigator, 'productSub', { get: () => '20030107' });
           Object.defineProperty(navigator, 'appName',    { get: () => 'Netscape' });
           Object.defineProperty(navigator, 'appVersion', {
-            get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
           });
 
           // ── Connection API (4G Wi-Fi gibi görün) ─────────────────

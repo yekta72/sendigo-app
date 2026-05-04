@@ -1,6 +1,6 @@
 {
   "name": "sendigo",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "description": "Birden fazla WhatsApp Business hesabını tek yerden yönet",
   "author": "Sendigo",
   "main": "main.js",
@@ -64,7 +64,20 @@
       "!create_icon.js",
       "!installer.nsh",
       "!LICENSE.txt",
-      "!node_modules/.cache/**"
+      "!node_modules/.cache/**",
+      "!**/*.map",
+      "!**/*.md",
+      "!**/*.bat",
+      "!**/*.vbs",
+      "!test-webhook.js",
+      "!debug.bat",
+      "!node_modules/electron-builder/**",
+      "!node_modules/canvas/**",
+      "!node_modules/png-to-ico/**",
+      "!node_modules/.bin/**",
+      "!icon-preview.png",
+      "!firebase.json",
+      "!functions/**"
     ],
     "extraResources": [
       {
@@ -78,7 +91,9 @@
       "owner": "yekta72",
       "repo": "sendigo-app",
       "releaseType": "release"
-    }
+    },
+    "compression": "maximum",
+    "asarUnpack": []
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
