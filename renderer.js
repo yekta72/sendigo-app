@@ -11,7 +11,7 @@ async function validateLicenseKey(key) {
   try {
     // Owner anahtarı — her zaman geçerli
     if (key === 'SNDG-OWNS-UNLM-YEKT') {
-      return { valid: true, plan: 'owner', info: 'Owner lisansı aktif.' };
+      return { valid: true, plan: 'owner', email: 'yektadumlu@gmail.com', expiresAt: null, info: 'Owner lisansı aktif.' };
     }
 
     const https = require('https');
@@ -31,16 +31,22 @@ async function validateLicenseKey(key) {
 
     const plan      = f.plan?.stringValue      || 'trial';
     const expiresAt = f.expiresAt?.stringValue || null;
+    const email     = f.email?.stringValue     || '';
+    const status    = f.status?.stringValue    || 'active';
+
+    if (status === 'cancelled') {
+      return { valid: false, reason: 'Aboneliğiniz iptal edilmiş. sendigo.pro adresinden yeniden satın alabilirsiniz.' };
+    }
 
     if (plan === 'trial' && expiresAt) {
       if (new Date() > new Date(expiresAt)) {
         return { valid: false, reason: 'Deneme süreniz dolmuştur. sendigo.pro adresinden bir plan satın alın.' };
       }
       const kalan = Math.ceil((new Date(expiresAt) - new Date()) / 3600000);
-      return { valid: true, plan, info: `Deneme lisansı aktif — ${kalan} saat kaldı.` };
+      return { valid: true, plan, email, expiresAt, info: `Deneme lisansı aktif — ${kalan} saat kaldı.` };
     }
 
-    return { valid: true, plan, info: `${plan.charAt(0).toUpperCase()+plan.slice(1)} planı aktif.` };
+    return { valid: true, plan, email, expiresAt, info: `${plan.charAt(0).toUpperCase()+plan.slice(1)} planı aktif.` };
   } catch (e) {
     return { valid: false, reason: 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.' };
   }
@@ -56,25 +62,109 @@ function hideLicenseGate() {
   if (gate) gate.style.display = 'none';
 }
 
-function updatePlanBadge(plan) {
-  const row        = document.getElementById('plan-badge-row');
-  const label      = document.getElementById('plan-badge-label');
-  const upgradeBtn = document.getElementById('plan-upgrade-btn');
-  if (!row || !label) return;
+// ── Plan özellik matrisi ──
+const PLAN_FEATURES = {
+  trial:    ['campaign'],
+  starter:  ['campaign'],
+  pro:      ['campaign','warming','greet'],
+  business: ['campaign','warming','greet','ai','schedule'],
+  owner:    ['campaign','warming','greet','ai','schedule'],
+};
 
-  const planNames = {
-    trial:    '⏳ Deneme',
-    starter:  '⭐ Starter',
-    pro:      '🚀 Pro',
-    business: '💼 Business',
-    owner:    '👑 Owner',
-  };
-  label.textContent = planNames[plan] || plan;
-  row.style.display = 'flex';
+// Hangi nav buton hangi özelliğe karşılık gelir
+const BTN_FEATURE_MAP = {
+  'warm-btn':  { feature:'warming', icon:'💪', title:'Hesap Güçlendirme', plan:'Pro veya üzeri', desc:'Hesaplarınızı güvenli şekilde ısındırmak için Pro plan gereklidir.' },
+  'greet-btn': { feature:'greet',   icon:'👋', title:'Selam & Yemleme Modu', plan:'Pro veya üzeri', desc:'Otomatik selamlama ve yemleme mesajları için Pro plan gereklidir.' },
+};
 
-  // Business ve Owner planında "Yükselt" butonu gizli
+window._currentPlan = 'trial';
+
+function applyPlanRestrictions(plan) {
+  window._currentPlan = plan;
+  const allowed = PLAN_FEATURES[plan] || PLAN_FEATURES['trial'];
+
+  Object.entries(BTN_FEATURE_MAP).forEach(([btnId, info]) => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (allowed.includes(info.feature)) {
+      btn.classList.remove('locked');
+    } else {
+      btn.classList.add('locked');
+    }
+  });
+
+  // AI Üret butonu — sadece Business+
+  const aiBtn = document.getElementById('cp-ai-gen-btn');
+  if (aiBtn) {
+    if (allowed.includes('ai')) {
+      aiBtn.style.display = '';
+    } else {
+      aiBtn.style.display = 'none';
+    }
+  }
+}
+
+window.showPlanUpgradeModal = function(feature) {
+  const info = Object.values(BTN_FEATURE_MAP).find(i => i.feature === feature)
+    || { icon:'🔒', title:'Bu Özellik Kilitli', plan:'', desc:'Bu özelliği kullanmak için planınızı yükseltmeniz gerekiyor.' };
+  document.getElementById('upgrade-modal-icon').textContent  = info.icon;
+  document.getElementById('upgrade-modal-title').textContent = info.title + ' — ' + info.plan;
+  document.getElementById('upgrade-modal-desc').textContent  = info.desc;
+  const modal = document.getElementById('plan-upgrade-modal');
+  modal.style.display = 'flex';
+};
+
+window.closePlanUpgradeModal = function() {
+  document.getElementById('plan-upgrade-modal').style.display = 'none';
+};
+
+const PLAN_NAMES = {
+  trial:    '⏳ Deneme',
+  starter:  '⭐ Starter',
+  pro:      '🚀 Pro',
+  business: '💼 Business',
+  owner:    '👑 Owner',
+};
+
+function updatePlanBadge(plan, email, licenseKey, expiresAt) {
+  // Sidebar hesap kartını güncelle
+  updateSidebarUser(plan, email, licenseKey, expiresAt);
+  // Plan kısıtlamalarını uygula
+  applyPlanRestrictions(plan);
+}
+
+function updateSidebarUser(plan, email, licenseKey, expiresAt) {
+  const avatarEl    = document.getElementById('su-avatar');
+  const emailEl     = document.getElementById('su-email');
+  const keyEl       = document.getElementById('su-key');
+  const badgeEl     = document.getElementById('su-plan-badge');
+  const upgradeBtn  = document.getElementById('su-upgrade-btn');
+  const expiryEl    = document.getElementById('su-expiry');
+
+  if (avatarEl)   avatarEl.textContent = email ? email.charAt(0).toUpperCase() : 'S';
+  if (emailEl)    emailEl.textContent  = email || 'Bilinmiyor';
+  if (keyEl)      keyEl.textContent    = licenseKey
+    ? licenseKey.replace(/^(.{4}-)(.+?)(-.{4})$/, '$1••••$3')
+    : '—';
+
+  if (badgeEl) {
+    badgeEl.textContent = PLAN_NAMES[plan] || plan;
+    badgeEl.className   = 'su-plan-badge ' + (plan || 'trial');
+  }
+
   const hiddenPlans = ['business', 'owner'];
-  upgradeBtn.style.display = hiddenPlans.includes(plan) ? 'none' : 'inline-block';
+  if (upgradeBtn) upgradeBtn.style.display = hiddenPlans.includes(plan) ? 'none' : 'inline-block';
+
+  if (expiryEl) {
+    if (expiresAt && plan !== 'owner') {
+      const d = new Date(expiresAt);
+      const diff = Math.ceil((d - Date.now()) / 86400000);
+      if (diff > 0) expiryEl.textContent = `⏱ ${diff} gün kaldı (${d.toLocaleDateString('tr-TR')})`;
+      else          expiryEl.textContent = '⚠️ Lisans süresi doldu';
+    } else {
+      expiryEl.textContent = '';
+    }
+  }
 }
 
 window.openUpgradePage = function() {
@@ -103,7 +193,7 @@ window.submitLicense = async function() {
     info.textContent = result.info;
     info.style.display = 'block';
     btn.textContent = '✓ Giriş yapılıyor…';
-    updatePlanBadge(result.plan);
+    updatePlanBadge(result.plan, result.email, key, result.expiresAt);
     setTimeout(() => hideLicenseGate(), 1000);
   } else {
     err.textContent = result.reason;
@@ -127,7 +217,7 @@ async function checkLicenseOnStartup() {
     if (err) { err.textContent = result.reason; err.style.display = 'block'; }
     if (inp)   inp.value = saved;
   } else {
-    updatePlanBadge(result.plan);
+    updatePlanBadge(result.plan, result.email, saved, result.expiresAt);
   }
   // valid ise gate zaten gizli, devam et
 }
@@ -3692,7 +3782,11 @@ function stopGreetMode() {
 }
 
 // Event listeners
-document.getElementById('greet-btn')?.addEventListener('click', openGreetPanel);
+document.getElementById('greet-btn')?.addEventListener('click', () => {
+  const allowed = PLAN_FEATURES[window._currentPlan] || [];
+  if (!allowed.includes('greet')) { showPlanUpgradeModal('greet'); return; }
+  openGreetPanel();
+});
 document.getElementById('greet-modal-close')?.addEventListener('click', () => {
   document.getElementById('greet-modal-overlay')?.classList.remove('show');
 });
@@ -4354,7 +4448,11 @@ if (secAddcdToggle) secAddcdToggle.addEventListener('change', () => {
 });
 
 // ── Güçlendirme modu ──────────────────────────────────────────────────────
-warmBtn.addEventListener('click', openWarmingPanel);
+warmBtn.addEventListener('click', () => {
+  const allowed = PLAN_FEATURES[window._currentPlan] || [];
+  if (!allowed.includes('warming')) { showPlanUpgradeModal('warming'); return; }
+  openWarmingPanel();
+});
 document.getElementById('warm-modal-close').addEventListener('click', closeWarmingPanel);
 makeOverlayCloseable(warmModalOverlay, closeWarmingPanel);
 document.getElementById('warm-start-btn').addEventListener('click', () => {
