@@ -1,0 +1,27 @@
+name: Deploy Website
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'website/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sendigo-app
+        uses: actions/checkout@v4
+
+      - name: sendigo-website reposuna push et
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/yekta72/sendigo-website.git site-repo
+          cp -r website/. site-repo/
+          cd site-repo
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add .
+          git diff --staged --quiet || git commit -m "Website güncellendi (otomatik)"
+          git push
