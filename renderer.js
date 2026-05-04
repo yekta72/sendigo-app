@@ -9,11 +9,25 @@ const LS_LICENSE_KEY   = 'sendigo_license';
 
 async function validateLicenseKey(key) {
   try {
+    // Owner anahtarı — her zaman geçerli
+    if (key === 'SNDG-OWNS-UNLM-YEKT') {
+      return { valid: true, plan: 'owner', info: 'Owner lisansı aktif.' };
+    }
+
+    const https = require('https');
     const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/licenses/${encodeURIComponent(key)}?key=${FIREBASE_API_KEY}`;
-    const res  = await fetch(url);
-    if (!res.ok) return { valid: false, reason: 'Lisans anahtarı bulunamadı.' };
-    const data = await res.json();
-    const f    = data.fields || {};
+    const data = await new Promise((resolve, reject) => {
+      https.get(url, res => {
+        let raw = '';
+        res.on('data', c => raw += c);
+        res.on('end', () => {
+          if (res.statusCode !== 200) { resolve(null); return; }
+          try { resolve(JSON.parse(raw)); } catch { resolve(null); }
+        });
+      }).on('error', reject);
+    });
+    if (!data) return { valid: false, reason: 'Lisans anahtarı bulunamadı.' };
+    const f = data.fields || {};
 
     const plan      = f.plan?.stringValue      || 'trial';
     const expiresAt = f.expiresAt?.stringValue || null;
