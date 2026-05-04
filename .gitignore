@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.vbs
+create_icon.js
+installer-banner.bmp
+.DS_Store

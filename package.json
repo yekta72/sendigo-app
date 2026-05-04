@@ -1,0 +1,93 @@
+{
+  "name": "sendigo",
+  "version": "5.1.0",
+  "description": "Birden fazla WhatsApp Business hesabını tek yerden yönet",
+  "author": "Sendigo",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win --x64",
+    "build:installer": "electron-builder build --win nsis --x64",
+    "build:portable": "electron-builder build --win portable --x64",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.sendigo.app",
+    "productName": "Sendigo",
+    "copyright": "Copyright © 2025 Sendigo",
+    "icon": "icon.ico",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico",
+      "signingHashAlgorithms": [
+        "sha256"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "shortcutName": "Sendigo",
+      "menuCategory": "Sendigo",
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "license": "LICENSE.txt",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Sendigo-Setup-${version}.exe",
+      "include": "installer.nsh"
+    },
+    "portable": {
+      "artifactName": "Sendigo-${version}.exe"
+    },
+    "files": [
+      "**/*",
+      "!dist",
+      "!*.vbs",
+      "!*.py",
+      "!create_icon.js",
+      "!installer.nsh",
+      "!LICENSE.txt",
+      "!node_modules/.cache/**"
+    ],
+    "extraResources": [
+      {
+        "from": "wa-preload.js",
+        "to": "wa-preload.js"
+      }
+    ],
+    "asar": true,
+    "publish": {
+      "provider": "github",
+      "owner": "yekta72",
+      "repo": "sendigo-app",
+      "releaseType": "release"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "canvas": "^3.2.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^3.0.1"
+  }
+}

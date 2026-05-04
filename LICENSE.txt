@@ -1,0 +1,24 @@
+ExtraWhatsapp - Çoklu WhatsApp Hesap Yöneticisi
+Copyright © 2025 ExtraWhatsapp. Tüm hakları saklıdır.
+
+KULLANIM KOŞULLARI
+
+Bu yazılım ("Yazılım"), ExtraWhatsapp tarafından geliştirilmiştir.
+
+1. KULLANIM HAKKI
+   Bu Yazılımı kişisel veya ticari amaçlarla kullanabilirsiniz.
+
+2. KISITLAMALAR
+   - Yazılımı izinsiz olarak kopyalayıp dağıtamazsınız.
+   - Kaynak kodunu izinsiz olarak değiştiremez ve dağıtamazsınız.
+   - Yazılımı zararlı amaçlarla kullanamazsınız.
+
+3. SORUMLULUK REDDİ
+   BU YAZILIM "OLDUĞU GİBİ" SUNULMAKTADIR. HERHANGİ BİR GARANTİ
+   VERİLMEMEKTEDİR. KULLANICININ SORUMLULUĞU ALTINDA KULLANILMALIDIR.
+
+4. WHATSAPP KULLANIM KOŞULLARI
+   Bu yazılımı kullanırken WhatsApp'ın kullanım koşullarına uymak
+   kullanıcının sorumluluğundadır.
+
+Bu yazılımı yükleyerek yukarıdaki koşulları kabul etmiş sayılırsınız.
