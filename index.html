@@ -9,56 +9,61 @@
   <style>
     /* ══ TEMA DEĞİŞKENLERİ ══ */
     :root {
-      --bg-app:        #0d1418;
-      --bg-sidebar:    #161f26;
-      --bg-header:     #1a252d;
-      --bg-hover:      #1e2d37;
-      --bg-input:      #1a252d;
-      --bg-modal:      #161f26;
-      --bg-card:       #1a252d;
-      --text-primary:  #e9edef;
-      --text-muted:    #8696a0;
-      --text-dim:      #546e7a;
-      --border:        #243040;
-      --accent:        #00d084;
-      --accent-2:      #00a884;
-      --accent-hover:  #00b573;
-      --accent-glow:   rgba(0,208,132,.18);
-      --accent-glow2:  rgba(0,208,132,.08);
+      --bg-app:        #080812;
+      --bg-sidebar:    #0d0d1f;
+      --bg-header:     #100c24;
+      --bg-hover:      #12122a;
+      --bg-input:      #12122a;
+      --bg-modal:      #0d0d1f;
+      --bg-card:       #12122a;
+      --text-primary:  #f0f0ff;
+      --text-muted:    #9090b0;
+      --text-dim:      #5a5a7a;
+      --border:        rgba(255,255,255,0.08);
+      --border2:       rgba(255,255,255,0.13);
+      --accent:        #7c3aed;
+      --accent-2:      #6366f1;
+      --accent-hover:  #6d28d9;
+      --accent-glow:   rgba(124,58,237,.18);
+      --accent-glow2:  rgba(124,58,237,.08);
+      --cyan:          #06b6d4;
+      --green:         #25d366;
       --danger:        #ef4444;
       --warning-bg:    rgba(251,191,36,0.10);
       --warning-text:  #fbbf24;
-      --scrollbar:     #2d3f4d;
+      --scrollbar:     #1a1a3a;
       --shadow:        rgba(0,0,0,0.65);
       --shadow-sm:     rgba(0,0,0,0.35);
       --drag-over:     rgba(124,58,237,0.15);
       --brand-from:    #7c3aed;
       --brand-to:      #06b6d4;
-      --sidebar-w:     248px;
+      --grad:          linear-gradient(135deg,#7c3aed,#6366f1,#06b6d4);
+      --sidebar-w:     260px;
     }
     body.light {
-      --bg-app:       #edf0f2;
-      --bg-sidebar:   #ffffff;
-      --bg-header:    #f7f8fa;
-      --bg-hover:     #f0f2f5;
-      --bg-input:     #f0f2f5;
-      --bg-modal:     #ffffff;
-      --bg-card:      #f7f8fa;
-      --text-primary: #111b21;
-      --text-muted:   #667781;
-      --text-dim:     #a0adb5;
-      --border:       #e3e8ed;
-      --accent:       #009d6e;
-      --accent-2:     #00a884;
-      --accent-hover: #007d58;
-      --accent-glow:  rgba(0,157,110,.12);
-      --accent-glow2: rgba(0,157,110,.06);
-      --scrollbar:    #cdd3d8;
-      --shadow:       rgba(0,0,0,0.18);
-      --shadow-sm:    rgba(0,0,0,0.10);
-      --drag-over:    rgba(124,58,237,0.10);
-      --brand-from:   #6d28d9;
-      --brand-to:     #0891b2;
+      --bg-app:        #f0f0f8;
+      --bg-sidebar:    #fafaff;
+      --bg-header:     #f4f0ff;
+      --bg-hover:      #ece8ff;
+      --bg-input:      #ece8ff;
+      --bg-modal:      #fafaff;
+      --bg-card:       #f4f0ff;
+      --text-primary:  #1a1040;
+      --text-muted:    #6060a0;
+      --text-dim:      #9090c0;
+      --border:        rgba(100,60,200,0.12);
+      --border2:       rgba(100,60,200,0.2);
+      --accent:        #6d28d9;
+      --accent-2:      #4f46e5;
+      --accent-hover:  #5b21b6;
+      --accent-glow:   rgba(109,40,217,.12);
+      --accent-glow2:  rgba(109,40,217,.06);
+      --scrollbar:     #c4b5fd;
+      --shadow:        rgba(0,0,0,0.18);
+      --shadow-sm:     rgba(0,0,0,0.10);
+      --drag-over:     rgba(124,58,237,0.10);
+      --brand-from:    #6d28d9;
+      --brand-to:      #0891b2;
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -99,10 +104,16 @@
       border-bottom:1px solid var(--border); flex-shrink:0;
       position:relative; overflow:hidden;
       display:flex; flex-direction:column;
+      backdrop-filter:blur(12px);
     }
     #sidebar-header::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       background:linear-gradient(90deg, var(--brand-from), var(--brand-to));
+    }
+    #sidebar-header::after {
+      content:''; position:absolute; top:0; left:-40%; width:80%; height:100%;
+      background:radial-gradient(ellipse at 50% 0%, rgba(124,58,237,.12) 0%, transparent 70%);
+      pointer-events:none;
     }
 
     .brand-row {
@@ -115,7 +126,7 @@
       background:linear-gradient(135deg, var(--brand-from), var(--brand-to));
       display:flex; align-items:center; justify-content:center;
       font-size:19px; font-weight:900; color:#fff;
-      box-shadow:0 2px 12px rgba(0,208,132,.4);
+      box-shadow:0 2px 12px rgba(124,58,237,.4);
       letter-spacing:0;
     }
 
@@ -145,10 +156,10 @@
       cursor:pointer; display:flex; align-items:center; justify-content:center;
       font-size:22px; font-weight:300; line-height:1;
       background:linear-gradient(135deg, var(--brand-from), var(--brand-to));
-      color:#fff; box-shadow:0 2px 8px rgba(0,208,132,.35);
+      color:#fff; box-shadow:0 2px 8px rgba(124,58,237,.35);
       transition:opacity .15s, transform .1s, box-shadow .15s;
     }
-    #add-account-btn:hover { opacity:.88; transform:scale(1.08); box-shadow:0 3px 12px rgba(0,208,132,.5); }
+    #add-account-btn:hover { opacity:.88; transform:scale(1.08); box-shadow:0 3px 12px rgba(124,58,237,.5); }
 
     /* ── Stats şeridi ── */
     #sidebar-stats {
@@ -213,8 +224,8 @@
     }
     .account-item:hover { background:var(--bg-hover); }
     .account-item.active {
-      background:linear-gradient(135deg, rgba(0,208,132,.22), rgba(0,160,255,.12));
-      box-shadow:inset 0 0 0 1px rgba(0,208,132,.3);
+      background:linear-gradient(135deg, rgba(124,58,237,.18), rgba(99,102,241,.1), rgba(6,182,212,.08));
+      box-shadow:inset 0 0 0 1px rgba(124,58,237,.25), 0 4px 16px rgba(124,58,237,.12);
     }
     /* Left accent bar on active — pointer-events:none ile tıklamayı bloklamaz */
     .account-item.active::before {
@@ -241,7 +252,7 @@
     }
     .account-avatar span { position:relative; z-index:1; }
     .account-item.active .account-avatar {
-      box-shadow:0 2px 12px rgba(0,208,132,.3);
+      box-shadow:0 2px 12px rgba(124,58,237,.3);
     }
     /* ── Hesap sayısı rozeti (mor) ── */
     #accounts-count {
@@ -551,7 +562,7 @@
     .camp-btn:hover {
       background:var(--accent); color:#fff;
       transform:scale(1.1);
-      box-shadow:0 2px 10px rgba(0,208,132,.4);
+      box-shadow:0 2px 10px rgba(124,58,237,.4);
     }
     .account-item.active .camp-btn { background:rgba(255,255,255,.15); color:rgba(255,255,255,.9); }
     .account-item.active .camp-btn:hover { background:rgba(255,255,255,.3); }
@@ -652,7 +663,7 @@
     .toggle-switch input:checked + .toggle-slider { background:var(--accent); }
     .toggle-switch input:checked + .toggle-slider::before {
       transform:translateX(18px);
-      box-shadow:0 1px 5px rgba(0,208,132,.4);
+      box-shadow:0 1px 5px rgba(124,58,237,.4);
     }
 
     /* ── Sidebar Canlı Aktivite Logu ── */
@@ -684,7 +695,7 @@
     }
     .slog-dot.active {
       background:var(--accent);
-      box-shadow:0 0 6px rgba(0,208,132,.55);
+      box-shadow:0 0 6px rgba(124,58,237,.55);
     }
     .slog-chevron {
       font-size:10px; color:var(--text-dim);
@@ -741,7 +752,7 @@
     .tip-item {
       display:flex; align-items:flex-start; gap:10px;
       padding:10px 12px; border-radius:10px;
-      background:var(--accent-glow2); border:1px solid rgba(0,208,132,.12);
+      background:var(--accent-glow2); border:1px solid rgba(124,58,237,.12);
       font-size:12px; color:var(--text-muted); line-height:1.6;
     }
     .tip-item .tip-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
@@ -759,7 +770,7 @@
       position:absolute; inset:0;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:16px; color:var(--text-muted);
-      background:radial-gradient(ellipse at 50% 40%, rgba(0,208,132,.04) 0%, transparent 70%);
+      background:radial-gradient(ellipse at 50% 40%, rgba(124,58,237,.04) 0%, transparent 70%);
     }
     #welcome-screen.hidden { display:none; }
 
@@ -768,12 +779,12 @@
       background:linear-gradient(135deg, var(--brand-from), var(--brand-to));
       display:flex; align-items:center; justify-content:center;
       font-size:38px; font-weight:900; color:#fff;
-      box-shadow:0 8px 40px rgba(0,208,132,.3), 0 2px 12px rgba(0,160,255,.2);
+      box-shadow:0 8px 40px rgba(124,58,237,.3), 0 2px 12px rgba(6,182,212,.2);
       animation:pulse-glow 3s ease-in-out infinite;
     }
     @keyframes pulse-glow {
-      0%,100% { box-shadow:0 8px 40px rgba(0,208,132,.3),0 2px 12px rgba(0,160,255,.2); }
-      50%      { box-shadow:0 8px 55px rgba(0,208,132,.5),0 2px 20px rgba(0,160,255,.35); }
+      0%,100% { box-shadow:0 8px 40px rgba(124,58,237,.3),0 2px 12px rgba(6,182,212,.2); }
+      50%      { box-shadow:0 8px 55px rgba(124,58,237,.5),0 2px 20px rgba(6,182,212,.35); }
     }
     .welcome-title {
       font-size:26px; font-weight:800; letter-spacing:-.4px;
@@ -784,7 +795,7 @@
     .welcome-hint {
       display:flex; align-items:center; gap:8px;
       padding:10px 18px; border-radius:10px;
-      background:var(--accent-glow2); border:1px solid rgba(0,208,132,.15);
+      background:var(--accent-glow2); border:1px solid rgba(124,58,237,.15);
       font-size:13px; color:var(--text-muted);
     }
 
@@ -1001,9 +1012,9 @@
     .cp-btn:disabled { opacity:.38; cursor:not-allowed; }
     .cp-btn-primary {
       background:linear-gradient(135deg, var(--brand-from), var(--brand-to));
-      color:#fff; box-shadow:0 2px 12px rgba(0,208,132,.3);
+      color:#fff; box-shadow:0 2px 12px rgba(124,58,237,.3);
     }
-    .cp-btn-primary:hover:not(:disabled) { opacity:.9; box-shadow:0 4px 18px rgba(0,208,132,.4); }
+    .cp-btn-primary:hover:not(:disabled) { opacity:.9; box-shadow:0 4px 18px rgba(124,58,237,.4); }
     .cp-btn-danger { background:#ef4444; color:#fff; box-shadow:0 2px 8px rgba(239,68,68,.25); }
     .cp-btn-danger:hover:not(:disabled) { background:#dc2626; }
     .cp-btn-secondary { background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); }
@@ -1018,7 +1029,7 @@
     .report-acct-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
     .report-acct-name { font-weight:600; font-size:13px; }
     .report-acct-reason { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; }
-    .report-acct-reason.done   { background:rgba(0,208,132,.12); color:#00d084; }
+    .report-acct-reason.done   { background:rgba(124,58,237,.12); color:#a78bfa; }
     .report-acct-reason.stop   { background:rgba(239,68,68,.12);  color:#ef4444; }
     .report-acct-reason.limit  { background:rgba(245,158,11,.12); color:#f59e0b; }
     .report-acct-reason.ban    { background:rgba(239,68,68,.18);  color:#ff6b6b; }
@@ -1139,9 +1150,9 @@
     }
     .btn-primary {
       background:linear-gradient(135deg, var(--brand-from), var(--brand-to));
-      color:#fff; box-shadow:0 2px 12px rgba(0,208,132,.3);
+      color:#fff; box-shadow:0 2px 12px rgba(124,58,237,.3);
     }
-    .btn-primary:hover { opacity:.9; box-shadow:0 4px 16px rgba(0,208,132,.4); }
+    .btn-primary:hover { opacity:.9; box-shadow:0 4px 16px rgba(124,58,237,.4); }
     .btn-secondary { background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); }
     .btn-secondary:hover { background:var(--bg-hover); }
 
@@ -1183,8 +1194,8 @@
     /* ══ SCROLLBAR ══ */
     ::-webkit-scrollbar { width:4px; }
     ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:var(--scrollbar); border-radius:2px; }
-    ::-webkit-scrollbar-thumb:hover { background:var(--text-dim); }
+    ::-webkit-scrollbar-thumb { background:rgba(124,58,237,.3); border-radius:2px; }
+    ::-webkit-scrollbar-thumb:hover { background:rgba(124,58,237,.55); }
   </style>
 </head>
 <body>
@@ -1192,7 +1203,7 @@
 <!-- ═══ LİSANS EKRANI ═══ -->
 <div id="license-gate" style="
   display:none; position:fixed; inset:0; z-index:9999;
-  background:#080e12;
+  background:#080812;
   flex-direction:column; align-items:center; justify-content:center;
   font-family:'Segoe UI',sans-serif;
 ">
@@ -1205,12 +1216,12 @@
     </div>
 
     <!-- Kart -->
-    <div style="background:#111c24;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:32px;">
+    <div style="background:#0d0d1f;border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px;box-shadow:0 24px 80px rgba(124,58,237,0.18)">
       <div style="font-size:16px;font-weight:700;color:#e0eaf0;margin-bottom:6px;">Lisans Anahtarı Girin</div>
       <div style="font-size:13px;color:#607080;margin-bottom:22px;">sendigo.pro adresinden aldığınız anahtarı girin</div>
 
       <input id="license-input" type="text" placeholder="SNDG-XXXX-XXXX-XXXX"
-        style="width:100%;background:#0d1a22;border:1px solid rgba(255,255,255,0.1);color:#e0eaf0;
+        style="width:100%;background:#12122a;border:1px solid rgba(124,58,237,0.3);color:#f0f0ff;
         padding:12px 16px;border-radius:12px;font-size:15px;font-family:monospace;
         letter-spacing:1px;outline:none;text-align:center;text-transform:uppercase;
         margin-bottom:12px;transition:border-color .2s;"
@@ -1221,10 +1232,10 @@
         color:#f87171;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
 
       <div id="license-info" style="display:none;background:rgba(0,208,132,0.1);border:1px solid rgba(0,208,132,0.25);
-        color:#00d084;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+        color:#a78bfa;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
 
       <button id="license-btn" onclick="submitLicense()"
-        style="width:100%;background:linear-gradient(135deg,#00d084,#00a0ff);color:#fff;
+        style="width:100%;background:linear-gradient(135deg,#7c3aed,#6366f1,#06b6d4);color:#fff;
         border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;
         cursor:pointer;font-family:inherit;transition:opacity .15s;">
         Doğrula & Giriş Yap
@@ -1671,7 +1682,7 @@
           <li>URL içeren şablonlarda varyasyon eklemek <strong>özellikle önemli</strong></li>
         </ul>
 
-        <div style="margin-top:10px;padding:8px 10px;background:rgba(0,208,132,.08);border-radius:6px;border-left:3px solid var(--accent);font-size:10.5px;color:var(--text-muted);">
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(124,58,237,.08);border-radius:6px;border-left:3px solid var(--accent);font-size:10.5px;color:var(--text-muted);">
           💡 <strong style="color:var(--accent);">İpucu:</strong> Tek şablonla kampanya yürütüyorsan en az 3 yerde spin kullan — uyarı sistemi de bunu kontrol ediyor.
         </div>
       </div>
