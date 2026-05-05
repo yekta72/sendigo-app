@@ -6,7 +6,7 @@ const { autoUpdater } = require('electron-updater');
 // Bu satır app.whenReady'den ÖNCE çağrılmalı
 app.setPath('userData', path.join(app.getPath('appData'), 'Sendigo'));
 
-const WA_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const WA_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
 
 // Electron'un kendi UA'sını global olarak ezeriz
 app.userAgentFallback = WA_UA;
@@ -105,26 +105,37 @@ app.whenReady().then(() => {
       contents.executeJavaScript('void 0').catch(() => {});
     } catch(e) {}
 
-    // 1. UA'yı zorla
-    contents.setUserAgent(WA_UA);
+    // 1. UA — webview'ın useragent attribute'u per-account UA'yı yönetir.
+    // setUserAgent() KASITLI olarak çağrılmıyor: tüm hesapları tek bir UA'ya
+    // zorlamak yerine her hesabın atanmış UA'sını (Chrome veya Firefox) korumalıyız.
 
-    // 2. Her istekte Electron parmak izini temizle + Client Hints ekle
+    // 2. Her istekte Electron parmak izini temizle + tarayıcıya uygun başlıklar
     contents.session.webRequest.onBeforeSendHeaders((details, callback) => {
       const h = { ...details.requestHeaders };
-      // UA
-      h['User-Agent']      = WA_UA;
-      // Client Hints — gerçek Chrome'un gönderdiği başlıklar
-      h['Sec-Ch-Ua']          = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"';
-      h['Sec-Ch-Ua-Mobile']   = '?0';
-      h['Sec-Ch-Ua-Platform'] = '"Windows"';
+      // UA'yı webview'ın kendi değerinden oku (useragent attribute ile atandı)
+      // Eksikse Chrome fallback uygula
+      const ua = h['User-Agent'] || WA_UA;
+      if (!h['User-Agent']) h['User-Agent'] = WA_UA;
+      const _isFF = /Firefox\//.test(ua);
+      if (!_isFF) {
+        // Chrome: Sec-Ch-Ua başlıklarını UA'daki major sürümle eşleştir
+        const major = (ua.match(/Chrome\/(\d+)/) || [, '148'])[1];
+        h['Sec-Ch-Ua']          = `"Chromium";v="${major}", "Google Chrome";v="${major}", "Not/A)Brand";v="24"`;
+        h['Sec-Ch-Ua-Mobile']   = '?0';
+        h['Sec-Ch-Ua-Platform'] = '"Windows"';
+      } else {
+        // Firefox: Client Hints API desteklemez — Sec-Ch-* başlıklarını kaldır
+        delete h['Sec-Ch-Ua'];
+        delete h['Sec-Ch-Ua-Mobile'];
+        delete h['Sec-Ch-Ua-Platform'];
+      }
       // Dil
       h['Accept-Language'] = 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7';
       // Electron-özgü başlıkları sil
       delete h['X-Electron-Version'];
       delete h['Electron-Version'];
       delete h['X-Requested-With'];
-      // NOT: Accept başlığını SILME — her istek türü (XHR, fetch, img, doc) için farklı olmalı
-      // Electron/Chromium zaten doğru Accept başlığını koyuyor
+      // NOT: Accept başlığını SILME — her istek türü için farklı olmalı
       callback({ requestHeaders: h });
     });
 
@@ -159,40 +170,48 @@ app.whenReady().then(() => {
     contents.on('did-finish-load', () => {
       contents.executeJavaScript(`
         try {
-          // ── Temel otomasyon bayrakları ──────────────────────────────
+          // ── Tarayıcı türü tespiti (Layer 1) ────────────────────────
+          const _ua1   = navigator.userAgent;
+          const _isFF1 = /Firefox\\//.test(_ua1);
+          const _isChr1= !_isFF1 && /Chrome\\//.test(_ua1);
+
+          // ── Temel otomasyon bayrakları (her tarayıcı) ───────────────
           Object.defineProperty(navigator, 'webdriver',           { get: () => undefined });
           Object.defineProperty(navigator, 'plugins',             { get: () => [1,2,3,4,5] });
           Object.defineProperty(navigator, 'languages',           { get: () => ['tr-TR','tr','en-US','en'] });
           Object.defineProperty(navigator, 'platform',            { get: () => 'Win32' });
           Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-          Object.defineProperty(navigator, 'deviceMemory',        { get: () => 8 });
           Object.defineProperty(navigator, 'maxTouchPoints',      { get: () => 0 });
+          // deviceMemory: Chrome'a özgü API — Firefox'ta tanımlanmaz
+          if (_isChr1) Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
 
-          // ── Gerçekçi window.chrome nesnesi ─────────────────────────
-          window.chrome = {
-            app: {
-              isInstalled: false,
-              InstallState: { DISABLED:'disabled', INSTALLED:'installed', NOT_INSTALLED:'not_installed' },
-              RunningState: { CANNOT_RUN:'cannot_run', READY_TO_RUN:'ready_to_run', RUNNING:'running' },
-              getDetails: function(){}, getIsInstalled: function(){},
-              installState: function(){}, runningState: function(){},
-            },
-            runtime: {
-              id: undefined,
-              connect: function(){}, sendMessage: function(){},
-              OnInstalledReason: {}, PlatformArch: {}, PlatformOs: {},
-            },
-            loadTimes: function() {
-              return { commitLoadTime: Date.now()/1000-2, connectionInfo:'h2',
-                finishDocumentLoadTime:0, finishLoadTime:0, firstPaintAfterLoadTime:0,
-                firstPaintTime:0, navigationType:'Other', npnNegotiatedProtocol:'h2',
-                requestTime: Date.now()/1000-3, startLoadTime: Date.now()/1000-3,
-                wasAlternateProtocolAvailable:false, wasFetchedViaSpdy:true, wasNpnNegotiated:true };
-            },
-            csi: function() {
-              return { onloadT: Date.now(), pageT: Date.now(), startE: Date.now(), tran: 15 };
-            },
-          };
+          // ── Gerçekçi window.chrome nesnesi — yalnızca Chrome ───────
+          if (_isChr1) {
+            window.chrome = {
+              app: {
+                isInstalled: false,
+                InstallState: { DISABLED:'disabled', INSTALLED:'installed', NOT_INSTALLED:'not_installed' },
+                RunningState: { CANNOT_RUN:'cannot_run', READY_TO_RUN:'ready_to_run', RUNNING:'running' },
+                getDetails: function(){}, getIsInstalled: function(){},
+                installState: function(){}, runningState: function(){},
+              },
+              runtime: {
+                id: undefined,
+                connect: function(){}, sendMessage: function(){},
+                OnInstalledReason: {}, PlatformArch: {}, PlatformOs: {},
+              },
+              loadTimes: function() {
+                return { commitLoadTime: Date.now()/1000-2, connectionInfo:'h2',
+                  finishDocumentLoadTime:0, finishLoadTime:0, firstPaintAfterLoadTime:0,
+                  firstPaintTime:0, navigationType:'Other', npnNegotiatedProtocol:'h2',
+                  requestTime: Date.now()/1000-3, startLoadTime: Date.now()/1000-3,
+                  wasAlternateProtocolAvailable:false, wasFetchedViaSpdy:true, wasNpnNegotiated:true };
+              },
+              csi: function() {
+                return { onloadT: Date.now(), pageT: Date.now(), startE: Date.now(), tran: 15 };
+              },
+            };
+          }
 
           // ── Electron izlerini sil (defineProperty ile — delete bazen çalışmaz) ──
           ['process','require','__electronRequire','electron','_electron',
@@ -224,8 +243,8 @@ app.whenReady().then(() => {
           try {
             const _origGetParam = WebGLRenderingContext.prototype.getParameter;
             WebGLRenderingContext.prototype.getParameter = function(param) {
-              if (param === 37445) return 'Intel Inc.';
-              if (param === 37446) return 'Intel Iris OpenGL Engine';
+              if (param === 37445) return _isFF1 ? 'Mozilla' : 'Intel Inc.';
+              if (param === 37446) return _isFF1 ? 'Mozilla' : 'Intel Iris OpenGL Engine';
               return _origGetParam.apply(this, arguments);
             };
           } catch(e) {}
@@ -259,32 +278,46 @@ app.whenReady().then(() => {
       // ════════════════════════════════════════════════════════════
       contents.executeJavaScript(`
         try {
-          // ── Ek navigator alanları ─────────────────────────────────
-          Object.defineProperty(navigator, 'vendor',     { get: () => 'Google Inc.' });
-          Object.defineProperty(navigator, 'productSub', { get: () => '20030107' });
+          // ── Tarayıcı türü tespiti (Layer 2) ──────────────────────────
+          const _ua2   = navigator.userAgent;
+          const _isFF2 = /Firefox\\//.test(_ua2);
+          const _isChr2= !_isFF2 && /Chrome\\//.test(_ua2);
+          const _cvM2  = _isChr2 ? (_ua2.match(/Chrome\\/(\\d+)/) || [,'148'])[1] : null;
+
+          // ── navigator tarayıcı-spesifik alanlar ──────────────────────
+          Object.defineProperty(navigator, 'vendor',     { get: () => _isFF2 ? '' : 'Google Inc.' });
+          Object.defineProperty(navigator, 'productSub', { get: () => _isFF2 ? '20100101' : '20030107' });
           Object.defineProperty(navigator, 'appName',    { get: () => 'Netscape' });
           Object.defineProperty(navigator, 'appVersion', {
-            get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            get: () => _isFF2
+              ? '5.0 (Windows)'
+              : \`5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/\${_cvM2}.0.0.0 Safari/537.36\`
           });
+          // Firefox'a özgü: oscpu
+          if (_isFF2) try { Object.defineProperty(navigator, 'oscpu', { get: () => 'Windows NT 10.0; Win64; x64' }); } catch(e) {}
 
-          // ── Connection API (4G Wi-Fi gibi görün) ─────────────────
-          try {
-            if (!navigator.connection) {
-              Object.defineProperty(navigator, 'connection', { get: () => ({
-                effectiveType: '4g', rtt: 45, downlink: 12.5, saveData: false, type: 'wifi',
+          // ── Connection API (4G Wi-Fi gibi görün) — yalnızca Chrome ──
+          if (_isChr2) {
+            try {
+              if (!navigator.connection) {
+                Object.defineProperty(navigator, 'connection', { get: () => ({
+                  effectiveType: '4g', rtt: 45, downlink: 12.5, saveData: false, type: 'wifi',
+                  addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => true,
+                }) });
+              }
+            } catch(e) {}
+          }
+
+          // ── Battery API — yalnızca Chrome (Firefox kısmi destek) ────
+          if (_isChr2) {
+            try {
+              navigator.getBattery = () => Promise.resolve({
+                charging: true, chargingTime: 0, dischargingTime: Infinity,
+                level: 0.93 + Math.random() * 0.06,
                 addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => true,
-              }) });
-            }
-          } catch(e) {}
-
-          // ── Battery API (prize takılı dizüstü) ───────────────────
-          try {
-            navigator.getBattery = () => Promise.resolve({
-              charging: true, chargingTime: 0, dischargingTime: Infinity,
-              level: 0.93 + Math.random() * 0.06,
-              addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => true,
-            });
-          } catch(e) {}
+              });
+            } catch(e) {}
+          }
 
           // ── Screen renk derinliği ─────────────────────────────────
           try {

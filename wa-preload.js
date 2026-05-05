@@ -3,10 +3,24 @@
 //  Bu script webview'ın preload attribute'u ile inject edilir.
 //  Sayfa JS'inden önce çalıştığı için WhatsApp'ın tüm tespit kontrolleri
 //  bu overridelar devredeyken başlar.
+//
+//  Chrome VE Firefox UA desteği:
+//  navigator.userAgent'a göre uygun parmak izi profili otomatik seçilir.
+//  Chrome: window.chrome, userAgentData, Client Hints, deviceMemory, Connection API
+//  Firefox: oscpu, boş vendor, farklı productSub — Chrome izleri yok
 // ══════════════════════════════════════════════════════════════════════════
 
 (function() {
   'use strict';
+
+  // ── 0. Tarayıcı türü tespiti ──────────────────────────────────────────────
+  const _ua       = navigator.userAgent;
+  const _isFF     = /Firefox\//.test(_ua);
+  const _isChr    = !_isFF && /Chrome\//.test(_ua);
+  // Chrome major sürümünü UA'dan çıkar → "Chrome/148.0.0.0" → '148'
+  const _cvMajor  = _isChr ? ((_ua.match(/Chrome\/(\d+)/) || [, '148'])[1]) : null;
+  // Firefox major sürümünü UA'dan çıkar → "Firefox/147.0" → '147'
+  const _ffMajor  = _isFF  ? ((_ua.match(/Firefox\/(\d+)/) || [, '147'])[1]) : null;
 
   // ── 1. Electron / Node izlerini HEMEN temizle ──────────────────────────
   const globalProps = [
@@ -40,27 +54,36 @@
     languages:          { get: () => ['tr-TR','tr','en-US','en'] },
     platform:           { get: () => 'Win32' },
     hardwareConcurrency:{ get: () => 8 },
-    deviceMemory:       { get: () => 8 },
     maxTouchPoints:     { get: () => 0 },
-    vendor:             { get: () => 'Google Inc.' },
-    productSub:         { get: () => '20030107' },
     appName:            { get: () => 'Netscape' },
-    appVersion:         { get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
     doNotTrack:         { get: () => null },
+    // ── Tarayıcı-spesifik: Chrome ve Firefox farklı değerler döner ──────
+    vendor:    { get: () => _isFF ? ''         : 'Google Inc.' },
+    productSub:{ get: () => _isFF ? '20100101' : '20030107'   },
+    appVersion:{ get: () => _isFF
+      ? '5.0 (Windows)'
+      : `5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${_cvMajor}.0.0.0 Safari/537.36`
+    },
   };
+  // Chrome'a özgü: deviceMemory (Firefox bu API'yi açmaz)
+  if (_isChr) navProps.deviceMemory = { get: () => 8 };
+  // Firefox'a özgü: oscpu (Chrome bu özelliği desteklemez)
+  if (_isFF)  navProps.oscpu = { get: () => 'Windows NT 10.0; Win64; x64' };
+
   Object.keys(navProps).forEach(k => {
     try { Object.defineProperty(navigator, k, navProps[k]); } catch(e) {}
   });
 
-  // ── 4. navigator.userAgentData — Chrome UA Client Hints API ───────────
-  // Electron bunu tanımlamaz; WhatsApp bunu kontrol edebilir
+  // ── 4. navigator.userAgentData — yalnızca Chrome destekler ───────────
+  // Firefox bu API'yi ya hiç tanımlamaz ya da kısmi destek sağlar;
+  // Chrome UA olan hesaplarda eksiksiz Client Hints profili oluştururuz.
   try {
-    if (!navigator.userAgentData) {
+    if (_isChr && !navigator.userAgentData) {
       const uaData = {
         brands: [
-          { brand: 'Chromium',      version: '124' },
-          { brand: 'Google Chrome', version: '124' },
-          { brand: 'Not-A.Brand',   version: '99'  },
+          { brand: 'Chromium',      version: _cvMajor },
+          { brand: 'Google Chrome', version: _cvMajor },
+          { brand: 'Not/A)Brand',   version: '24'     },
         ],
         mobile: false,
         platform: 'Windows',
@@ -70,15 +93,15 @@
             bitness:         '64',
             brands:          uaData.brands,
             fullVersionList: [
-              { brand: 'Chromium',      version: '124.0.6367.78' },
-              { brand: 'Google Chrome', version: '124.0.6367.78' },
-              { brand: 'Not-A.Brand',   version: '99.0.0.0'      },
+              { brand: 'Chromium',      version: `${_cvMajor}.0.7576.83` },
+              { brand: 'Google Chrome', version: `${_cvMajor}.0.7576.83` },
+              { brand: 'Not/A)Brand',   version: '24.0.0.0'              },
             ],
             mobile:          false,
             model:           '',
             platform:        'Windows',
             platformVersion: '10.0.0',
-            uaFullVersion:   '124.0.6367.78',
+            uaFullVersion:   `${_cvMajor}.0.7576.83`,
           };
         },
         toJSON: function() {
@@ -92,8 +115,9 @@
     }
   } catch(e) {}
 
-  // ── 5. window.chrome gerçekçi nesnesi ──────────────────────────────────
-  if (!window.chrome) {
+  // ── 5. window.chrome gerçekçi nesnesi — yalnızca Chrome ──────────────
+  // Firefox'ta window.chrome yoktur; enjekte etmek tutarsızlık yaratır.
+  if (_isChr && !window.chrome) {
     window.chrome = {
       app: {
         isInstalled: false,
@@ -152,12 +176,14 @@
     };
   } catch(e) {}
 
-  // ── 8. WebGL renderer maskeleme ────────────────────────────────────────
+  // ── 8. WebGL renderer maskeleme — tarayıcıya göre farklı değerler ─────
+  // Chrome: Intel GPU dizüstü profili
+  // Firefox: Mozilla renderer (FF'in gerçek davranışına uygun)
   try {
     const _origGetParam = WebGLRenderingContext.prototype.getParameter;
     WebGLRenderingContext.prototype.getParameter = function(param) {
-      if (param === 37445) return 'Intel Inc.';
-      if (param === 37446) return 'Intel Iris OpenGL Engine';
+      if (param === 37445) return _isFF ? 'Mozilla' : 'Intel Inc.';
+      if (param === 37446) return _isFF ? 'Mozilla' : 'Intel Iris OpenGL Engine';
       return _origGetParam.apply(this, arguments);
     };
   } catch(e) {}
@@ -207,9 +233,9 @@
     });
   } catch(e) {}
 
-  // ── 13. Connection API ─────────────────────────────────────────────────
+  // ── 13. Connection API — Chrome destekler, Firefox büyük ölçüde desteklemez ──
   try {
-    if (!navigator.connection) {
+    if (_isChr && !navigator.connection) {
       Object.defineProperty(navigator, 'connection', {
         get: () => ({
           effectiveType: '4g', rtt: 45, downlink: 12.5,

@@ -1189,7 +1189,7 @@ function getDeviceFingerprint(accountId) {
     [2560, 1440], [1280, 1024],
   ];
   const [w, h]   = resPool[Math.floor(Math.random() * resPool.length)];
-  const chromeVs = ['120', '121', '122', '123', '124'];
+  const chromeVs = ['141', '142', '143', '144', '145', '146', '147', '148'];
   const chromeV  = chromeVs[Math.floor(Math.random() * chromeVs.length)];
   fp = { screenW: w, screenH: h, chromeVer: chromeV, createdAt: Date.now() };
   localStorage.setItem(key, JSON.stringify(fp));
@@ -1723,25 +1723,38 @@ function playNotificationSound() {
 //  WEBVIEW
 // ══════════════════════════════════════════════════════════════════════════
 // Gerçekçi Chrome minor sürüm havuzu — her hesaba sabit ama farklı UA atanır
-const CHROME_UA_POOL = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.216 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.184 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.128 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.86 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.91 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.155 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.76 Safari/537.36',
+// ── Tarayıcı UA havuzu — GÜNCEL sürümler (Mayıs 2026) ────────────────────────
+// Chrome ~%80 (8 giriş) + Firefox ~%20 (2 giriş) — gerçek pazar payına yakın dağılım
+// Chrome 107+ UA reduction: minor sürüm her zaman 0.0.0 olarak gönderilir
+// Firefox: rv ve Firefox sürümü eşleşmeli
+const UA_POOL = [
+  // Chrome (%80 — 8 giriş)
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+  // Firefox (%20 — 2 giriş)
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
 ];
 // Her hesap için kararlı (sabit) UA — oturum boyunca değişmez, hesaplar arası farklıdır
+// NOT: Havuz güncellenince eski UA'lar artık geçersiz — otomatik yenilenir.
+const _MIN_CHROME_VER = 141; // havuzdaki minimum Chrome major sürümü
 function getAccountUA(accountId) {
   const key = `wa_ua_${accountId}`;
   const stored = localStorage.getItem(key);
-  if (stored && CHROME_UA_POOL.includes(stored)) return stored;
-  const ua = CHROME_UA_POOL[Math.floor(Math.random() * CHROME_UA_POOL.length)];
+  // Havuzda yoksa VEYA eski (Chrome < _MIN_CHROME_VER) ise yeni UA ata
+  const isCurrentUA = stored && UA_POOL.includes(stored);
+  if (isCurrentUA) return stored;
+  const ua = UA_POOL[Math.floor(Math.random() * UA_POOL.length)];
   localStorage.setItem(key, ua);
   return ua;
 }
-const WA_UA = CHROME_UA_POOL[4]; // fallback
+const WA_UA = UA_POOL[UA_POOL.length - 1]; // fallback — her zaman en güncel
 
 function getOrCreateWebview(account) {
   let wv = document.getElementById(`wv_${account.id}`);
